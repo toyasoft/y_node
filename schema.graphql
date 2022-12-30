@@ -1,0 +1,115 @@
+schema {
+  query: Query
+  mutation: Mutation
+}
+
+interface Node {
+  id: ID
+}
+
+type PageInfo {
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  endCursor: String
+  startCursor: String
+}
+
+type Query {
+  node(id: ID!): String!
+  user(id: ID!): User!
+  item(id: ID!): Item!
+  items: [Item!]
+  orders: [Order!]
+}
+
+type Mutation {
+  noop(input: NoopInput): NoopPayload
+  createUser(input: CreateUserInput!): CreateUserPayload!
+  signin(input: SigninInput!): SigninPayload!
+  createItem(input: CreateItemInput!): CreateItemPayload!
+  updateItem(input: UpdateItemInput!): UpdateItemPayload!
+  deleteItem(input: DeleteItemInput!): DeleteItemPayload!
+}
+
+input NoopInput {
+  clientMutationId: String
+}
+
+type NoopPayload {
+  clientMutationId: String
+}
+
+type User {
+  id: ID!
+  email: String!
+  point: Int!
+  name: String!
+  items: [Item!]
+}
+
+type Item {
+  id: ID!
+  name: String!
+  price: Int!
+  username: String
+  image: String
+  description: String
+}
+
+type Order {
+  id: ID!
+  name: String!
+  price: Int!
+  buyer: String!
+  seller: String!
+}
+
+input CreateUserInput {
+  email: String!
+  password: String!
+  name: String
+}
+
+type CreateUserPayload {
+  user: User!
+}
+
+input SigninInput {
+  email: String!
+  password: String!
+}
+
+type SigninPayload {
+  user: User!
+}
+
+input CreateItemInput {
+  name: String!
+  pric: Int!
+  image: String
+  description: String
+}
+
+type CreateItemPayload {
+  item: Item!
+}
+
+input UpdateItemInput {
+  id: ID!
+  name: String!
+  pric: Int!
+  image: String
+  description: String
+}
+
+type UpdateItemPayload {
+  item: Item!
+}
+
+input DeleteItemInput {
+  id: ID!
+}
+
+type DeleteItemPayload {
+  item: Item!
+}
