@@ -2,6 +2,11 @@ import { createSchema } from "graphql-yoga";
 import path from "path";
 import { loadFilesSync } from "@graphql-tools/load-files";
 import { mergeResolvers } from "@graphql-tools/merge";
+import { CreateItemInput } from "../__generated__/newItemMutation.graphql";
+import { CreateUserInput } from "../__generated__/signupMutation.graphql";
+import { SigninInput } from "../__generated__/signinMutation.graphql";
+import { DeleteItemInput } from "../__generated__/ItemDeleteMutation.graphql";
+import { UpdateItemInput } from "../__generated__/ItemUpdateMutation.graphql";
 
 export const decodedId = (id: string) => {
   return Buffer.from(id, "base64").toString().split(":")[1];

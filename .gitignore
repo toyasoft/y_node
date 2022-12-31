@@ -22,5 +22,9 @@
 /yarn-debug.log*
 /yarn-error.log*
 
+<<<<<<< HEAD
 *.DS_Store
 
+=======
+*.DS_Store
+>>>>>>> 0da3363295dcebf3b10629941deac75e6a3aca2a
