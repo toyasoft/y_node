@@ -7,6 +7,16 @@ import { CreateUserInput } from "../__generated__/signupMutation.graphql";
 import { SigninInput } from "../__generated__/signinMutation.graphql";
 import { DeleteItemInput } from "../__generated__/ItemDeleteMutation.graphql";
 import { UpdateItemInput } from "../__generated__/ItemUpdateMutation.graphql";
+import mysql from "mysql2/promise"
+
+const con = mysql.createConnection({
+  host: "mysql",
+  user: "root",
+  password: "root",
+  database: "demo"
+})
+
+console.log(con)
 
 export const decodedId = (id: string) => {
   return Buffer.from(id, "base64").toString().split(":")[1];
