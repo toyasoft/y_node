@@ -33,7 +33,7 @@ export const schema = createSchema({
   resolvers: {
     Query: {
       user: async (_parent: unknown, args: any, context: any) => {
-        console.log(args);
+        console.log(context);
         return {
           id: 1,
         };
@@ -55,8 +55,7 @@ export const schema = createSchema({
         return items;
       },
       orders: async (_parent: unknown, args: any, context: any) => {
-        console.log(args);
-        console.log("test");
+
         const orders = [
           {
             id: encodedId("1", "Order"),
