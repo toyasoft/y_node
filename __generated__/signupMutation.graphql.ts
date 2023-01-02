@@ -1,5 +1,5 @@
 /**
- * @generated SignedSource<<7c420e60c5842b3a5564032ebe10c75e>>
+ * @generated SignedSource<<4fa2186dcfb7096757ca0186af2da57e>>
  * @lightSyntaxTransform
  * @nogrep
  */
@@ -21,7 +21,6 @@ export type signupMutation$data = {
   readonly createUser: {
     readonly user: {
       readonly email: string;
-      readonly name: string;
     };
   };
 };
@@ -51,13 +50,6 @@ v2 = {
   "kind": "ScalarField",
   "name": "email",
   "storageKey": null
-},
-v3 = {
-  "alias": null,
-  "args": null,
-  "kind": "ScalarField",
-  "name": "name",
-  "storageKey": null
 };
 return {
   "fragment": {
@@ -82,8 +74,7 @@ return {
             "name": "user",
             "plural": false,
             "selections": [
-              (v2/*: any*/),
-              (v3/*: any*/)
+              (v2/*: any*/)
             ],
             "storageKey": null
           }
@@ -117,7 +108,6 @@ return {
             "plural": false,
             "selections": [
               (v2/*: any*/),
-              (v3/*: any*/),
               {
                 "alias": null,
                 "args": null,
@@ -134,16 +124,16 @@ return {
     ]
   },
   "params": {
-    "cacheID": "8afb74b0fef21906085ac710eee7e619",
+    "cacheID": "4067dafa47bba8327dae123d69ce7ae9",
     "id": null,
     "metadata": {},
     "name": "signupMutation",
     "operationKind": "mutation",
-    "text": "mutation signupMutation(\n  $input: CreateUserInput!\n) {\n  createUser(input: $input) {\n    user {\n      email\n      name\n      id\n    }\n  }\n}\n"
+    "text": "mutation signupMutation(\n  $input: CreateUserInput!\n) {\n  createUser(input: $input) {\n    user {\n      email\n      id\n    }\n  }\n}\n"
   }
 };
 })();
 
-(node as any).hash = "2db9e74c2cac8d805c446506ceb0d237";
+(node as any).hash = "9419d3d99b9c5b3238fd3eb0f196533f";
 
 export default node;

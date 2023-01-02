@@ -1,5 +1,5 @@
 /**
- * @generated SignedSource<<a3c22b793fc524cf525f4bb233784ebc>>
+ * @generated SignedSource<<6bab1ed4de12161ee839078908f22779>>
  * @lightSyntaxTransform
  * @nogrep
  */
@@ -16,12 +16,11 @@ export type userIndexQuery$variables = {
 export type userIndexQuery$data = {
   readonly user: {
     readonly email: string;
+    readonly id: string;
     readonly items: ReadonlyArray<{
-      readonly description: string | null;
       readonly id: string;
-      readonly image: string | null;
       readonly name: string;
-      readonly price: number;
+      readonly point: number;
       readonly " $fragmentSpreads": FragmentRefs<"ItemDelete_item">;
     }> | null;
   };
@@ -71,21 +70,7 @@ v5 = {
   "alias": null,
   "args": null,
   "kind": "ScalarField",
-  "name": "price",
-  "storageKey": null
-},
-v6 = {
-  "alias": null,
-  "args": null,
-  "kind": "ScalarField",
-  "name": "image",
-  "storageKey": null
-},
-v7 = {
-  "alias": null,
-  "args": null,
-  "kind": "ScalarField",
-  "name": "description",
+  "name": "point",
   "storageKey": null
 };
 return {
@@ -104,6 +89,7 @@ return {
         "plural": false,
         "selections": [
           (v2/*: any*/),
+          (v3/*: any*/),
           {
             "alias": null,
             "args": null,
@@ -115,8 +101,6 @@ return {
               (v3/*: any*/),
               (v4/*: any*/),
               (v5/*: any*/),
-              (v6/*: any*/),
-              (v7/*: any*/),
               {
                 "args": null,
                 "kind": "FragmentSpread",
@@ -147,6 +131,7 @@ return {
         "plural": false,
         "selections": [
           (v2/*: any*/),
+          (v3/*: any*/),
           {
             "alias": null,
             "args": null,
@@ -157,29 +142,26 @@ return {
             "selections": [
               (v3/*: any*/),
               (v4/*: any*/),
-              (v5/*: any*/),
-              (v6/*: any*/),
-              (v7/*: any*/)
+              (v5/*: any*/)
             ],
             "storageKey": null
-          },
-          (v3/*: any*/)
+          }
         ],
         "storageKey": null
       }
     ]
   },
   "params": {
-    "cacheID": "362b85c55d78c46f818404e801cdb85e",
+    "cacheID": "8718642e5590bcbb60265ec74c9a1a2e",
     "id": null,
     "metadata": {},
     "name": "userIndexQuery",
     "operationKind": "query",
-    "text": "query userIndexQuery(\n  $id: ID!\n) {\n  user(id: $id) {\n    email\n    items {\n      id\n      name\n      price\n      image\n      description\n      ...ItemDelete_item\n    }\n    id\n  }\n}\n\nfragment ItemDelete_item on Item {\n  id\n}\n"
+    "text": "query userIndexQuery(\n  $id: ID!\n) {\n  user(id: $id) {\n    email\n    id\n    items {\n      id\n      name\n      point\n      ...ItemDelete_item\n    }\n  }\n}\n\nfragment ItemDelete_item on Item {\n  id\n}\n"
   }
 };
 })();
 
-(node as any).hash = "f797f000c9b77be295cbc56cfd879eb2";
+(node as any).hash = "c317e4f5bd92141943f538cdb40ba051";
 
 export default node;

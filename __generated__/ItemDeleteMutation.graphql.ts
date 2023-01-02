@@ -1,5 +1,5 @@
 /**
- * @generated SignedSource<<7eb13f9c51273c805f7664ff8ad51912>>
+ * @generated SignedSource<<82e230f43bc38c339ef363ba87b6d868>>
  * @lightSyntaxTransform
  * @nogrep
  */
@@ -17,9 +17,7 @@ export type ItemDeleteMutation$variables = {
 };
 export type ItemDeleteMutation$data = {
   readonly deleteItem: {
-    readonly item: {
-      readonly id: string;
-    };
+    readonly deletedItemId: string;
   };
 };
 export type ItemDeleteMutation = {
@@ -53,19 +51,8 @@ v1 = [
       {
         "alias": null,
         "args": null,
-        "concreteType": "Item",
-        "kind": "LinkedField",
-        "name": "item",
-        "plural": false,
-        "selections": [
-          {
-            "alias": null,
-            "args": null,
-            "kind": "ScalarField",
-            "name": "id",
-            "storageKey": null
-          }
-        ],
+        "kind": "ScalarField",
+        "name": "deletedItemId",
         "storageKey": null
       }
     ],
@@ -90,16 +77,16 @@ return {
     "selections": (v1/*: any*/)
   },
   "params": {
-    "cacheID": "2a40ab3996925a2b5026645b4a5d0fe0",
+    "cacheID": "3a1be5b2df69971445e769d65b1fa36e",
     "id": null,
     "metadata": {},
     "name": "ItemDeleteMutation",
     "operationKind": "mutation",
-    "text": "mutation ItemDeleteMutation(\n  $input: DeleteItemInput!\n) {\n  deleteItem(input: $input) {\n    item {\n      id\n    }\n  }\n}\n"
+    "text": "mutation ItemDeleteMutation(\n  $input: DeleteItemInput!\n) {\n  deleteItem(input: $input) {\n    deletedItemId\n  }\n}\n"
   }
 };
 })();
 
-(node as any).hash = "5018cbc6bd1b14f228d31b3b32a2ef5e";
+(node as any).hash = "abd9e843e6b1c9b8aec683895ef8e0fa";
 
 export default node;

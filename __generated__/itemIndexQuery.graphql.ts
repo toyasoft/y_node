@@ -1,5 +1,5 @@
 /**
- * @generated SignedSource<<b3967a44bba488aad005f6276aed27bd>>
+ * @generated SignedSource<<50207730175100d015506b664009c10b>>
  * @lightSyntaxTransform
  * @nogrep
  */
@@ -13,9 +13,8 @@ export type itemIndexQuery$variables = {};
 export type itemIndexQuery$data = {
   readonly items: ReadonlyArray<{
     readonly id: string;
-    readonly image: string | null;
     readonly name: string;
-    readonly price: number;
+    readonly point: number;
     readonly username: string | null;
   }> | null;
 };
@@ -52,7 +51,7 @@ var v0 = [
         "alias": null,
         "args": null,
         "kind": "ScalarField",
-        "name": "price",
+        "name": "point",
         "storageKey": null
       },
       {
@@ -60,13 +59,6 @@ var v0 = [
         "args": null,
         "kind": "ScalarField",
         "name": "username",
-        "storageKey": null
-      },
-      {
-        "alias": null,
-        "args": null,
-        "kind": "ScalarField",
-        "name": "image",
         "storageKey": null
       }
     ],
@@ -91,16 +83,16 @@ return {
     "selections": (v0/*: any*/)
   },
   "params": {
-    "cacheID": "595a562e94ee4031ff5d3e2e0ea17c09",
+    "cacheID": "b9cb0b677d5e80346898d9119a07fba8",
     "id": null,
     "metadata": {},
     "name": "itemIndexQuery",
     "operationKind": "query",
-    "text": "query itemIndexQuery {\n  items {\n    id\n    name\n    price\n    username\n    image\n  }\n}\n"
+    "text": "query itemIndexQuery {\n  items {\n    id\n    name\n    point\n    username\n  }\n}\n"
   }
 };
 })();
 
-(node as any).hash = "cb4bd7d00191973efb2c781474b271b3";
+(node as any).hash = "add3e18cfd4a0f8d07dd75e68b7ba056";
 
 export default node;

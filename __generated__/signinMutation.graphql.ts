@@ -1,5 +1,5 @@
 /**
- * @generated SignedSource<<3bffc371e828f80d61a6f7d074bc86e0>>
+ * @generated SignedSource<<fe22b6f71d9fe3256b4b7200bb57594c>>
  * @lightSyntaxTransform
  * @nogrep
  */
@@ -20,8 +20,8 @@ export type signinMutation$data = {
   readonly signin: {
     readonly user: {
       readonly email: string;
-      readonly name: string;
     };
+    readonly userToken: string;
   };
 };
 export type signinMutation = {
@@ -55,7 +55,7 @@ v3 = {
   "alias": null,
   "args": null,
   "kind": "ScalarField",
-  "name": "name",
+  "name": "userToken",
   "storageKey": null
 };
 return {
@@ -81,11 +81,11 @@ return {
             "name": "user",
             "plural": false,
             "selections": [
-              (v2/*: any*/),
-              (v3/*: any*/)
+              (v2/*: any*/)
             ],
             "storageKey": null
-          }
+          },
+          (v3/*: any*/)
         ],
         "storageKey": null
       }
@@ -116,7 +116,6 @@ return {
             "plural": false,
             "selections": [
               (v2/*: any*/),
-              (v3/*: any*/),
               {
                 "alias": null,
                 "args": null,
@@ -126,23 +125,24 @@ return {
               }
             ],
             "storageKey": null
-          }
+          },
+          (v3/*: any*/)
         ],
         "storageKey": null
       }
     ]
   },
   "params": {
-    "cacheID": "b6d0b4cdd1597f58705b4b96469e2baa",
+    "cacheID": "631f550ae34e590526128a40ce411000",
     "id": null,
     "metadata": {},
     "name": "signinMutation",
     "operationKind": "mutation",
-    "text": "mutation signinMutation(\n  $input: SigninInput!\n) {\n  signin(input: $input) {\n    user {\n      email\n      name\n      id\n    }\n  }\n}\n"
+    "text": "mutation signinMutation(\n  $input: SigninInput!\n) {\n  signin(input: $input) {\n    user {\n      email\n      id\n    }\n    userToken\n  }\n}\n"
   }
 };
 })();
 
-(node as any).hash = "6edbc4eb47d49c84806c9d791e1f9407";
+(node as any).hash = "22f345b0ca81ee860ff2351d4f1c330c";
 
 export default node;

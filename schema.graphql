@@ -43,17 +43,14 @@ type User {
   id: ID!
   email: String!
   point: Int!
-  name: String!
   items: [Item!]
 }
 
 type Item {
   id: ID!
   name: String!
-  price: Int!
+  point: Int!
   username: String
-  image: String
-  description: String
 }
 
 type Order {
@@ -81,13 +78,12 @@ input SigninInput {
 
 type SigninPayload {
   user: User!
+  userToken: String!
 }
 
 input CreateItemInput {
   name: String!
-  pric: Int!
-  image: String
-  description: String
+  point: Int!
 }
 
 type CreateItemPayload {
@@ -97,9 +93,7 @@ type CreateItemPayload {
 input UpdateItemInput {
   id: ID!
   name: String!
-  pric: Int!
-  image: String
-  description: String
+  point: Int!
 }
 
 type UpdateItemPayload {
@@ -111,5 +105,5 @@ input DeleteItemInput {
 }
 
 type DeleteItemPayload {
-  item: Item!
+  deletedItemId: ID!
 }

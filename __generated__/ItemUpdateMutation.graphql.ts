@@ -1,5 +1,5 @@
 /**
- * @generated SignedSource<<bed4909c6f2a29eb62f7f9e94e271ced>>
+ * @generated SignedSource<<a767f99ab29ac4e0ade83e08c5b52713>>
  * @lightSyntaxTransform
  * @nogrep
  */
@@ -10,11 +10,9 @@
 
 import { ConcreteRequest, Mutation } from 'relay-runtime';
 export type UpdateItemInput = {
-  description?: string | null;
   id: string;
-  image?: string | null;
   name: string;
-  pric: number;
+  point: number;
 };
 export type ItemUpdateMutation$variables = {
   input: UpdateItemInput;
@@ -22,11 +20,9 @@ export type ItemUpdateMutation$variables = {
 export type ItemUpdateMutation$data = {
   readonly updateItem: {
     readonly item: {
-      readonly description: string | null;
       readonly id: string;
-      readonly image: string | null;
       readonly name: string;
-      readonly price: number;
+      readonly point: number;
       readonly username: string | null;
     };
   };
@@ -85,7 +81,7 @@ v1 = [
             "alias": null,
             "args": null,
             "kind": "ScalarField",
-            "name": "price",
+            "name": "point",
             "storageKey": null
           },
           {
@@ -93,20 +89,6 @@ v1 = [
             "args": null,
             "kind": "ScalarField",
             "name": "username",
-            "storageKey": null
-          },
-          {
-            "alias": null,
-            "args": null,
-            "kind": "ScalarField",
-            "name": "image",
-            "storageKey": null
-          },
-          {
-            "alias": null,
-            "args": null,
-            "kind": "ScalarField",
-            "name": "description",
             "storageKey": null
           }
         ],
@@ -134,16 +116,16 @@ return {
     "selections": (v1/*: any*/)
   },
   "params": {
-    "cacheID": "428eb389e8957a3eabc63316bb0a8732",
+    "cacheID": "8f6ed965518b8e38361e1adb83ebd6f5",
     "id": null,
     "metadata": {},
     "name": "ItemUpdateMutation",
     "operationKind": "mutation",
-    "text": "mutation ItemUpdateMutation(\n  $input: UpdateItemInput!\n) {\n  updateItem(input: $input) {\n    item {\n      id\n      name\n      price\n      username\n      image\n      description\n    }\n  }\n}\n"
+    "text": "mutation ItemUpdateMutation(\n  $input: UpdateItemInput!\n) {\n  updateItem(input: $input) {\n    item {\n      id\n      name\n      point\n      username\n    }\n  }\n}\n"
   }
 };
 })();
 
-(node as any).hash = "3456030c30b0bf6be06805147c634b3c";
+(node as any).hash = "18e243d4b29e4bcc46b9f10b153fa999";
 
 export default node;

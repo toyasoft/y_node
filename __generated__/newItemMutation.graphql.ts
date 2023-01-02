@@ -1,5 +1,5 @@
 /**
- * @generated SignedSource<<8f6dcbb54f4050fe644f9ac2b10e4c49>>
+ * @generated SignedSource<<d5e834b7c57e12d9f13fd36c7f7d7edf>>
  * @lightSyntaxTransform
  * @nogrep
  */
@@ -10,10 +10,8 @@
 
 import { ConcreteRequest, Mutation } from 'relay-runtime';
 export type CreateItemInput = {
-  description?: string | null;
-  image?: string | null;
   name: string;
-  pric: number;
+  point: number;
 };
 export type newItemMutation$variables = {
   input: CreateItemInput;
@@ -21,11 +19,9 @@ export type newItemMutation$variables = {
 export type newItemMutation$data = {
   readonly createItem: {
     readonly item: {
-      readonly description: string | null;
       readonly id: string;
-      readonly image: string | null;
       readonly name: string;
-      readonly price: number;
+      readonly point: number;
       readonly username: string | null;
     };
   };
@@ -84,7 +80,7 @@ v1 = [
             "alias": null,
             "args": null,
             "kind": "ScalarField",
-            "name": "price",
+            "name": "point",
             "storageKey": null
           },
           {
@@ -92,20 +88,6 @@ v1 = [
             "args": null,
             "kind": "ScalarField",
             "name": "username",
-            "storageKey": null
-          },
-          {
-            "alias": null,
-            "args": null,
-            "kind": "ScalarField",
-            "name": "image",
-            "storageKey": null
-          },
-          {
-            "alias": null,
-            "args": null,
-            "kind": "ScalarField",
-            "name": "description",
             "storageKey": null
           }
         ],
@@ -133,16 +115,16 @@ return {
     "selections": (v1/*: any*/)
   },
   "params": {
-    "cacheID": "3a02dbd147274a22e3a42d5dd2fd197f",
+    "cacheID": "fd65a5d6eb304383c7db9839bb3f2e0d",
     "id": null,
     "metadata": {},
     "name": "newItemMutation",
     "operationKind": "mutation",
-    "text": "mutation newItemMutation(\n  $input: CreateItemInput!\n) {\n  createItem(input: $input) {\n    item {\n      id\n      name\n      price\n      username\n      image\n      description\n    }\n  }\n}\n"
+    "text": "mutation newItemMutation(\n  $input: CreateItemInput!\n) {\n  createItem(input: $input) {\n    item {\n      id\n      name\n      point\n      username\n    }\n  }\n}\n"
   }
 };
 })();
 
-(node as any).hash = "520314348f214cbf05a7b75008165a4c";
+(node as any).hash = "934484c8c32180a01a8698d63a993e95";
 
 export default node;

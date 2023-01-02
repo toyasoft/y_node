@@ -1,5 +1,5 @@
 /**
- * @generated SignedSource<<091e16b34c30d3ac029a5b2eccaa790e>>
+ * @generated SignedSource<<422e2c98302e9e9b883abaad5ee3ea14>>
  * @lightSyntaxTransform
  * @nogrep
  */
@@ -97,21 +97,7 @@ return {
             "alias": null,
             "args": null,
             "kind": "ScalarField",
-            "name": "price",
-            "storageKey": null
-          },
-          {
-            "alias": null,
-            "args": null,
-            "kind": "ScalarField",
-            "name": "image",
-            "storageKey": null
-          },
-          {
-            "alias": null,
-            "args": null,
-            "kind": "ScalarField",
-            "name": "description",
+            "name": "point",
             "storageKey": null
           }
         ],
@@ -120,12 +106,12 @@ return {
     ]
   },
   "params": {
-    "cacheID": "35aed49cf513f4a722292b181dc34b53",
+    "cacheID": "e4991b08176e5ce6df0f66669641efbf",
     "id": null,
     "metadata": {},
     "name": "editItemQuery",
     "operationKind": "query",
-    "text": "query editItemQuery(\n  $id: ID!\n) {\n  item(id: $id) {\n    ...ItemUpdate_item\n    id\n  }\n}\n\nfragment ItemUpdate_item on Item {\n  id\n  name\n  price\n  image\n  description\n}\n"
+    "text": "query editItemQuery(\n  $id: ID!\n) {\n  item(id: $id) {\n    ...ItemUpdate_item\n    id\n  }\n}\n\nfragment ItemUpdate_item on Item {\n  id\n  name\n  point\n}\n"
   }
 };
 })();

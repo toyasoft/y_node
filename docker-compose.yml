@@ -23,6 +23,7 @@ services:
       TZ: "Asia/Tokyo"
     volumes:
       - ./my.cnf:/etc/mysql/conf.d/my.cnf
+      - mysqldb:/var/lib/mysql
     networks:
       - y-node-network
 volumes:
