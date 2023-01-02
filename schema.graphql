@@ -29,6 +29,7 @@ type Mutation {
   createItem(input: CreateItemInput!): CreateItemPayload!
   updateItem(input: UpdateItemInput!): UpdateItemPayload!
   deleteItem(input: DeleteItemInput!): DeleteItemPayload!
+  createOrder(input: CreateOrderInput!): CreateOrderPayload!
 }
 
 input NoopInput {
@@ -106,4 +107,12 @@ input DeleteItemInput {
 
 type DeleteItemPayload {
   deletedItemId: ID!
+}
+
+input CreateOrderInput {
+  itemId: ID!
+}
+
+type CreateOrderPayload {
+  order: Order!
 }

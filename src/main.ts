@@ -9,7 +9,7 @@ const yoga = createYoga({
   schema,
   async context({ request }) {
     const con = await mysql.createConnection({
-      host: "mysql",
+      host: "y_node-mysql-1",
       user: "root",
       password: "root",
       database: "demo",

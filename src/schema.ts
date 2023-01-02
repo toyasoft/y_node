@@ -7,6 +7,7 @@ import { CreateUserInput } from "../__generated__/signupMutation.graphql";
 import { SigninInput } from "../__generated__/signinMutation.graphql";
 import { DeleteItemInput } from "../__generated__/ItemDeleteMutation.graphql";
 import { UpdateItemInput } from "../__generated__/ItemUpdateMutation.graphql";
+import { CreateOrderInput } from "../__generated__/OrderCreateMutation.graphql";
 import mysql from "mysql2/promise";
 import bcrypt from "bcryptjs";
 import { GraphQLError } from "graphql";
@@ -28,6 +29,43 @@ export const schema = createSchema({
   typeDefs: typeDefs,
   resolvers: {
     Query: {
+      currentUser: async (parent: unknown, args: unknown, context: any) => {
+        if (!context.user) {
+          throw new GraphQLError("認証エラーです");
+        }
+        const userTable = await context.con.execute(
+          `
+            SELECT
+              u.id,
+              u.email,
+              i.id AS item_id,
+              i.name AS item_name,
+              i.point AS item_point
+            FROM
+              users AS u
+            LEFT JOIN
+              items AS i
+            ON
+              u.id = i.user_id
+            WHERE
+              u.id = ?
+          `,
+          [decodedId(context.user.id)]
+        );
+        const user = userTable[0][0];
+        const items = userTable[0].map((i: any) => {
+          return {
+            id: encodedId(i.item_id, "Item"),
+            name: i.item_name,
+            point: i.item_point,
+          };
+        });
+        return {
+          id: user.id,
+          email: user.email,
+          items: items,
+        };
+      },
       user: async (parent: unknown, args: unknown, context: any) => {
         if (!context.user) {
           throw new GraphQLError("認証エラーです");
@@ -145,7 +183,9 @@ export const schema = createSchema({
             `,
             [args.input.email]
           );
-          if (checkUserTable[0][0].id) {
+
+          const checkUser = checkUserTable[0][0]
+          if (checkUser && checkUser.id) {
             throw new GraphQLError("メールアドレスは登録済みです");
           }
           const insertUserTable = await context.con.execute(
@@ -178,12 +218,18 @@ export const schema = createSchema({
           `,
             [insertUserTable[0].insertId]
           );
+          console.log(userTable)
+          const user = userTable[0][0]
           return {
-            id: userTable[0].id,
-            email: userTable[0].email,
-            point: userTable[0].point,
+            user: {
+              id: user.id,
+            email: user.email,
+            point: user.point,
+            }
+            
           };
         } catch (e) {
+          console.log(e)
           return e;
         }
       },
@@ -350,7 +396,8 @@ export const schema = createSchema({
 
         return { deletedItemId: args.input.id };
       },
-      createOrder: async (_parent: unknown, args: unknown, context: any) => {
+      createOrder: async (_parent: unknown, args: {input: CreateOrderInput}, context: any) => {
+        console.log(args)
         if (!context.user) {
           throw new GraphQLError("認証エラーです");
         }
