@@ -17,6 +17,7 @@ type PageInfo {
 type Query {
   node(id: ID!): String!
   user(id: ID!): User!
+  currentUser: User!
   item(id: ID!): Item!
   items: [Item!]
   orders: [Order!]

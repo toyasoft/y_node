@@ -1,19 +1,34 @@
-import { createSchema } from "graphql-yoga";
+import { createSchema, GraphQLSchemaWithContext } from "graphql-yoga";
 import path from "path";
 import { loadFilesSync } from "@graphql-tools/load-files";
-import { mergeResolvers } from "@graphql-tools/merge";
-import { CreateItemInput } from "../__generated__/newItemMutation.graphql";
-import { CreateUserInput } from "../__generated__/signupMutation.graphql";
-import { SigninInput } from "../__generated__/signinMutation.graphql";
-import { DeleteItemInput } from "../__generated__/ItemDeleteMutation.graphql";
-import { UpdateItemInput } from "../__generated__/ItemUpdateMutation.graphql";
-import { CreateOrderInput } from "../__generated__/OrderCreateMutation.graphql";
-import mysql from "mysql2/promise";
 import bcrypt from "bcryptjs";
 import { GraphQLError } from "graphql";
 import jwt from "jsonwebtoken";
+import { GraphQLContext } from "./main";
+
 
 require("dotenv").config();
+
+type UserRow = {
+  id: string
+  email: string
+  item_id: number
+  item_name: string
+  item_point: number
+}
+
+type ItemRow = {
+  id: string
+  name: string
+  point: number
+  user_id: number
+}
+
+type OrderRow = {
+  id: string
+  buyer_id: number
+  seller_id: number
+}
 
 export const decodedId = (id: string) => {
   return Buffer.from(id, "base64").toString().split(":")[1];
@@ -25,15 +40,16 @@ export const encodedId = (id: string | number, typeName: string) => {
 
 const typeDefs = loadFilesSync(path.join(process.cwd(), "schema.graphql"));
 
+
 export const schema = createSchema({
   typeDefs: typeDefs,
   resolvers: {
     Query: {
-      currentUser: async (parent: unknown, args: unknown, context: any) => {
+      currentUser: async (parent: unknown, args: unknown, context: GraphQLContext) => {
         if (!context.user) {
           throw new GraphQLError("認証エラーです");
         }
-        const userTable = await context.con.execute(
+        const [rows] = await context.con.execute(
           `
             SELECT
               u.id,
@@ -52,12 +68,13 @@ export const schema = createSchema({
           `,
           [decodedId(context.user.id)]
         );
-        const user = userTable[0][0];
-        const items = userTable[0].map((i: any) => {
+        const userRows: UserRow[] = Object.values(JSON.parse(JSON.stringify(rows)))
+        const user: UserRow = userRows[0]
+        const items = userRows.map((row: UserRow) => {
           return {
-            id: encodedId(i.item_id, "Item"),
-            name: i.item_name,
-            point: i.item_point,
+            id: encodedId(row.item_id, "Item"),
+            name: row.item_name,
+            point: row.item_point,
           };
         });
         return {
@@ -66,11 +83,11 @@ export const schema = createSchema({
           items: items,
         };
       },
-      user: async (parent: unknown, args: unknown, context: any) => {
+      user: async (parent: unknown, args: unknown, context: GraphQLContext) => {
         if (!context.user) {
           throw new GraphQLError("認証エラーです");
         }
-        const userTable = await context.con.execute(
+        const [rows] = await context.con.execute(
           `
             SELECT
               u.id,
@@ -89,12 +106,13 @@ export const schema = createSchema({
           `,
           [decodedId(context.user.id)]
         );
-        const user = userTable[0][0];
-        const items = userTable[0].map((i: any) => {
+        const userRows: UserRow[] = Object.values(JSON.parse(JSON.stringify(rows)))
+        const user: UserRow = userRows[0]
+        const items = userRows.map((row: UserRow) => {
           return {
-            id: encodedId(i.item_id, "Item"),
-            name: i.item_name,
-            point: i.item_point,
+            id: encodedId(row.item_id, "Item"),
+            name: row.item_name,
+            point: row.item_point,
           };
         });
         return {
@@ -103,8 +121,8 @@ export const schema = createSchema({
           items: items,
         };
       },
-      item: async (_parent: unknown, args: { id: string }, context: any) => {
-        const itemTable = await context.con.execute(
+      item: async (_parent: unknown, args: { id: string }, context: GraphQLContext) => {
+        const [rows] = await context.con.execute(
           `
             SELECT
               id,
@@ -117,15 +135,16 @@ export const schema = createSchema({
           `,
           [decodedId(args.id)]
         );
-        const item = itemTable[0][0];
+        const itemRows: ItemRow[] = Object.values(JSON.parse(JSON.stringify(rows)))
+        const item: ItemRow = itemRows[0]
         return {
           id: encodedId(item.id, "Item"),
           name: item.name,
           point: item.point,
         };
       },
-      items: async (_parent: unknown, args: any, context: any) => {
-        const itemsTable = await context.con.execute(
+      items: async (_parent: unknown, args: unknown, context: GraphQLContext) => {
+        const rows = await context.con.execute(
           `
             SELECT
               i.id,
@@ -136,12 +155,12 @@ export const schema = createSchema({
               items AS i
           `
         );
-        const items = itemsTable[0];
-        console.log(itemsTable);
-        return items;
+        const itemRows: ItemRow[] = Object.values(JSON.parse(JSON.stringify(rows)))
+
+        return itemRows;
       },
-      orders: async (_parent: unknown, args: any, context: any) => {
-        const ordersTable = await context.con.execute(
+      orders: async (_parent: unknown, args: unknown, context: GraphQLContext) => {
+        const [rows] = await context.con.execute(
           `
             SELECT
               o.id,
@@ -155,15 +174,19 @@ export const schema = createSchema({
               o.item_id = i.id
           `
         );
-        const orders = ordersTable[0];
-        return orders;
+        const orderRows: OrderRow[] = Object.values(JSON.parse(JSON.stringify(rows)))
+
+        return orderRows;
       },
     },
     Mutation: {
       createUser: async (
         _parent: unknown,
-        args: { input: CreateUserInput },
-        context: any
+        args: { input: {
+          email: string
+          password: string
+        } },
+        context: GraphQLContext
       ) => {
         try {
           const regex = /^(?=.*[A-Z])(?=.*[0-9])[a-zA-Z0-9.?/-]{8,20}$/;
@@ -172,7 +195,7 @@ export const schema = createSchema({
               "パスワードは8文字以上20文字以内で少なくとも英語と数字を一文字以上入力してください"
             );
           }
-          const checkUserTable = await context.con.execute(
+          const [checkRows] = await context.con.execute(
             `
               SELECT
                 id
@@ -183,7 +206,7 @@ export const schema = createSchema({
             `,
             [args.input.email]
           );
-
+          const checkUserRows: UserRow[] = Object.values(JSON.parse(JSON.stringify(checkRows)))
           const checkUser = checkUserTable[0][0]
           if (checkUser && checkUser.id) {
             throw new GraphQLError("メールアドレスは登録済みです");
@@ -218,7 +241,6 @@ export const schema = createSchema({
           `,
             [insertUserTable[0].insertId]
           );
-          console.log(userTable)
           const user = userTable[0][0]
           return {
             user: {
@@ -235,8 +257,11 @@ export const schema = createSchema({
       },
       signin: async (
         _parent: unknown,
-        args: { input: SigninInput },
-        context: any
+        args: { input: {
+          email: string
+          password: string
+        } },
+        context: GraphQLContext
       ) => {
         try {
           const userTable = await context.con.execute(
@@ -282,8 +307,11 @@ export const schema = createSchema({
       },
       createItem: async (
         _parent: unknown,
-        args: { input: CreateItemInput },
-        context: any
+        args: { input: {
+          name: string
+          point: number
+        } },
+        context: GraphQLContext
       ) => {
         try {
           if (!context.user) {
@@ -329,8 +357,12 @@ export const schema = createSchema({
       },
       updateItem: async (
         _parent: unknown,
-        args: { input: UpdateItemInput },
-        context: any
+        args: { input: {
+          id: string
+          name: string
+          point: number
+        } },
+        context: GraphQLContext
       ) => {
         if (!context.user) {
           throw new GraphQLError("認証エラーです");
@@ -377,8 +409,10 @@ export const schema = createSchema({
       },
       deleteItem: async (
         _parent: unknown,
-        args: { input: DeleteItemInput },
-        context: any
+        args: { input: {
+          id: string
+        } },
+        context: GraphQLContext
       ) => {
         if (!context.user) {
           throw new GraphQLError("認証エラーです");
@@ -396,7 +430,9 @@ export const schema = createSchema({
 
         return { deletedItemId: args.input.id };
       },
-      createOrder: async (_parent: unknown, args: {input: CreateOrderInput}, context: any) => {
+      createOrder: async (_parent: unknown, args: {input: {
+        itemId: string
+      }}, context: GraphQLContext) => {
         console.log(args)
         if (!context.user) {
           throw new GraphQLError("認証エラーです");

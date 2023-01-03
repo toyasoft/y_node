@@ -4,7 +4,16 @@ import { schema } from "./schema";
 import mysql from "mysql2/promise";
 import jwt from "jsonwebtoken";
 
-// Create a Yoga instance with a GraphQL schema.
+export type User = {
+  id: string
+  email: string
+}
+
+export type GraphQLContext = {
+  con: mysql.Connection;
+  user: User | undefined
+};
+
 const yoga = createYoga({
   schema,
   async context({ request }) {
@@ -17,7 +26,7 @@ const yoga = createYoga({
     });
 
     const token = request.headers.get("authorization");
-    let user;
+    let user: User | undefined;
     if (token) {
       jwt.verify(
         token,
