@@ -15,7 +15,9 @@ export type GraphQLContext = {
   user: User | undefined;
 };
 
-export const yoga = createYoga({
+
+
+const yoga = createYoga({
   schema,
   async context({ request }) {
     try {
@@ -51,7 +53,7 @@ export const yoga = createYoga({
 });
 
 // Pass it into a server to hook into request handlers.
-const server = createServer(yoga);
+export const server = createServer(yoga);
 
 // Start the server and you're done!
 server.listen(4000, () => {

@@ -1,47 +1,27 @@
 import { createYoga, YogaServerInstance } from "graphql-yoga";
-import { createConnection } from "mysql2";
 import { decodedId, encodedId, IItem, IUser, schema } from "../src/schema";
 import mysql, { ResultSetHeader } from "mysql2/promise";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
-import { User } from "../src/main";
+import { server, User } from "../src/main";
 import { GraphQLError } from "graphql";
+import { api, db, initYoga } from "../jest.setup";
 
 let yoga: YogaServerInstance<any, any>;
 let con: mysql.Connection;
 let item: IItem;
+
 beforeAll(async () => {
-  con = await mysql.createConnection({
-    host: "y_node-mysql-test-1",
-    user: "root",
-    password: "root",
-    database: "test",
-    port: 3306,
-  });
+  con = await mysql.createConnection(db);
   await con.execute(`
     DELETE FROM
       users
   `);
-  yoga = createYoga({
-    schema,
-    async context({ request }) {
-      const token = request.headers.get("authorization");
-      let user: User | undefined;
-      if (token) {
-        jwt.verify(
-          token,
-          process.env.AUTH_SECRET || "",
-          function (err: any, decoded: any) {
-            user = decoded;
-          }
-        );
-      }
-      return {
-        con: con,
-        user: user,
-      };
-    },
-  });
+  await con.execute(`
+    DELETE FROM
+      items
+  `);
+  yoga = initYoga(con)
   const hashPassword = bcrypt.hashSync(String("1234asdfqwer"), 3);
 
   const [insertUserRowData] = await con.execute<ResultSetHeader>(
@@ -60,15 +40,15 @@ beforeAll(async () => {
 
   const [insertItemRowData] = await con.execute<ResultSetHeader>(
     `
-            INSERT INTO
-              items (
-                name,
-                point,
-                user_id
-              )
-            VALUES
-              (?, ?, ?)
-          `,
+      INSERT INTO
+        items (
+          name,
+          point,
+          user_id
+        )
+      VALUES
+        (?, ?, ?)
+    `,
     ["商品1", 1000, insertUserRowData.insertId]
   );
 
@@ -90,23 +70,22 @@ beforeAll(async () => {
 });
 afterAll(async () => {
   con.end();
-});
-beforeEach(async () => {});
-
-afterEach(async () => {
-  // con.end();
+server.close()
 });
 
-describe("currentUser item test", () => {
-  const query = `{ 
-    item {
-      id
-      name
-      point
-    }
-  }`;
-  it("normally", async () => {
-    const response = await yoga.fetch("http://localhost:4000/graphql", {
+describe("itemQueryのテスト", () => {
+  const query = `
+    query itemQuery(
+      $id: ID!
+    ){ 
+      item(id: $id) {
+        id
+        name
+        point
+      }
+    }`;
+  it("正常", async () => {
+    const response = await yoga.fetch(api, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -118,11 +97,12 @@ describe("currentUser item test", () => {
     });
     expect(response.status).toBe(200);
     const result = await response.json();
-    console.log(result);
     expect(result.data?.item.name).toBe("商品1");
+    expect(result.data?.item.point).toBe(1000);
+    expect(result.data?.item.id).toBe(encodedId(item.id, "Item"));
   });
-  it("if specify id", async () => {
-    const response = await yoga.fetch("http://localhost:4000/graphql", {
+  it("idがnullの場合", async () => {
+    const response = await yoga.fetch(api, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -132,12 +112,50 @@ describe("currentUser item test", () => {
         variables: { id: null },
       }),
     });
+    expect(response.status).toBe(400);
+    const result = await response.json();
+    result.errors.map((error: GraphQLError) => {
+      expect(error.message).toBe(
+        'Variable "$id" of non-null type "ID!" must not be null.'
+      );
+    });
+  });
+  it("idが存在しない場合", async () => {
+    const response = await yoga.fetch(api, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        query: query,
+        variables: { id: "example" },
+      }),
+    });
     expect(response.status).toBe(200);
     const result = await response.json();
     result.errors.map((error: GraphQLError) => {
-      // expect(error.message).toBe(
-      //   'Field "item" argument "id" of type "ID!" is required, but it was not provided.'
-      // );
+      expect(error.message).toBe(
+        'IDが存在しません'
+      );
+    });
+  });
+  it("商品が存在しない場合", async () => {
+    const response = await yoga.fetch(api, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        query: query,
+        variables: { id: encodedId(1000, "Item") },
+      }),
+    });
+    expect(response.status).toBe(200);
+    const result = await response.json();
+    result.errors.map((error: GraphQLError) => {
+      expect(error.message).toBe(
+        '商品が存在しません'
+      );
     });
   });
 });
