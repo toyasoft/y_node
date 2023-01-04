@@ -153,6 +153,7 @@ export const schema = createSchema({
         args: { id: string },
         context: GraphQLContext
       ) => {
+        console.log(args);
         const [itemRowData] = await context.con.execute<IItem[]>(
           `
             SELECT
