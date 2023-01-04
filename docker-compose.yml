@@ -26,9 +26,23 @@ services:
       - mysqldb:/var/lib/mysql
     networks:
       - y-node-network
+  mysql-test:
+    image: mysql:8.0.28
+    ports:
+      - "3307:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: test
+      TZ: "Asia/Tokyo"
+    volumes:
+      - ./my.cnf:/etc/mysql/conf.d/my.cnf
+      - mysqltestdb:/var/lib/mysql
+    networks:
+      - y-node-network
 volumes:
   node_modules_volume:
   mysqldb:
+  mysqltestdb:
 
 networks:
   y-node-network:

@@ -53,6 +53,7 @@ type Item {
   name: String!
   point: Int!
   username: String
+  userId: ID!
 }
 
 type Order {
