@@ -93,18 +93,13 @@ afterEach(async () => {
   // con.end();
 });
 
-describe("currentUser query test", () => {
+describe("currentUser item test", () => {
   const query = JSON.stringify({
     query: `{ 
-      currentUser {
-        email
+      item {
         id
-        items {
-          id
-          name
-          point
-          userId
-        }
+        name
+        point
       }
     }`,
   });
@@ -113,15 +108,15 @@ describe("currentUser query test", () => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `${userToken}`,
       },
       body: query,
     });
     expect(response.status).toBe(200);
     const result = await response.json();
-    expect(result.data.currentUser.email).toBe("test@toyasoft.com");
+    console.log(result);
+    // expect(result.data.currentUser.email).toBe("test@toyasoft.com");
   });
-  it("if specify userToken", async () => {
+  it("if specify id", async () => {
     const response = await yoga.fetch("http://localhost:4000/graphql", {
       method: "POST",
       headers: {
@@ -132,7 +127,9 @@ describe("currentUser query test", () => {
     expect(response.status).toBe(200);
     const result = await response.json();
     result.errors.map((error: GraphQLError) => {
-      expect(error.message).toBe("認証エラーです");
+      expect(error.message).toBe(
+        'Field "item" argument "id" of type "ID!" is required, but it was not provided.'
+      );
     });
   });
 });

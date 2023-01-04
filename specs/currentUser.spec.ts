@@ -22,7 +22,7 @@ beforeAll(async () => {
     DELETE FROM
       users
   `);
-  yoga = createYoga({
+  yoga = await createYoga({
     schema,
     async context({ request }) {
       const token = request.headers.get("authorization");
@@ -119,7 +119,7 @@ describe("currentUser query test", () => {
     });
     expect(response.status).toBe(200);
     const result = await response.json();
-    expect(result.data.currentUser.email).toBe("test@toyasoft.com");
+    expect(result.data.currentUser?.email).toBe("test@toyasoft.com");
   });
   it("if specify userToken", async () => {
     const response = await yoga.fetch("http://localhost:4000/graphql", {
