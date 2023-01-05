@@ -118,4 +118,6 @@ input CreateOrderInput {
 
 type CreateOrderPayload {
   order: Order!
+  buyer: User!
+  seller: User!
 }

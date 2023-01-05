@@ -44,7 +44,7 @@ beforeAll(async () => {
   `);
   yoga = initYoga(con);
   const hashPassword0 = bcrypt.hashSync(String(users[0].password), 3);
-  const hashPassword1 = bcrypt.hashSync(String(users[1].password), 3);
+  
 
   const [insertUserRowData0] = await con.execute<ResultSetHeader>(
     `
@@ -59,6 +59,7 @@ beforeAll(async () => {
   `,
     [users[0].email, hashPassword0, users[0].point]
   );
+  const hashPassword1 = bcrypt.hashSync(String(users[1].password), 3);
   const [insertUserRowData1] = await con.execute<ResultSetHeader>(
     `
     INSERT INTO
@@ -121,6 +122,16 @@ describe("createOrderMutationテスト", () => {
           seller
           createdAt
         }
+        buyer {
+          id
+          email
+          point
+        }
+        seller {
+          id
+          email
+          point
+        }
       }
     }`;
   it("正常時", async () => {
@@ -141,6 +152,9 @@ describe("createOrderMutationテスト", () => {
     expect(result.data.createOrder.order.point).toBe(item.point);
     expect(result.data.createOrder.order.buyer).toBe(users[0].email);
     expect(result.data.createOrder.order.seller).toBe(users[1].email);
+    expect(result.data.createOrder.buyer.point).toBe(users[0].point - result.data.createOrder.order.point);
+    expect(result.data.createOrder.seller.point).toBe(users[0].point + result.data.createOrder.order.point);
+
   });
   it("未ログインの場合", async () => {
     const response = await yoga.fetch(api, {

@@ -18,21 +18,25 @@ export const initYoga = (con: mysql.Connection) => {
     return createYoga({
         schema,
         async context({ request }) {
-          const token = request.headers.get("authorization");
-          let user: User | undefined;
-          if (token) {
-            jwt.verify(
-              token,
-              process.env.AUTH_SECRET || "",
-              function (err: any, decoded: any) {
-                user = decoded;
-              }
-            );
+          try {
+            const token = request.headers.get("authorization");
+            let user: User | undefined;
+            if (token) {
+              jwt.verify(
+                token,
+                process.env.AUTH_SECRET || "",
+                function (err: any, decoded: any) {
+                  user = decoded;
+                }
+              );
+            }
+            return {
+              con: con,
+              user: user,
+            };
+          } catch (e) {
+            console.log(e);
           }
-          return {
-            con: con,
-            user: user,
-          };
         },
       });
 }
