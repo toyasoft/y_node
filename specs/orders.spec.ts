@@ -21,7 +21,7 @@ beforeAll(async () => {
     DELETE FROM
       items
   `);
-  yoga = initYoga(con)
+  yoga = initYoga(con);
   const hashPassword = bcrypt.hashSync(String("1234asdfqwer"), 3);
 
   const [insertUserRowData] = await con.execute<ResultSetHeader>(
@@ -77,13 +77,16 @@ afterEach(async () => {
   // con.end();
 });
 
-describe("itemsQueryテスト", () => {
+describe("ordersQueryテスト", () => {
   const query = `
-    query itemsQuery { 
-      items {
+    query ordersQuery { 
+      orders {
         id
         name
         point
+        buyer
+        seller
+        createdAt
       }
     }`;
   it("正常時", async () => {
@@ -93,15 +96,12 @@ describe("itemsQueryテスト", () => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        query: query
+        query: query,
       }),
     });
     expect(response.status).toBe(200);
     const result = await response.json();
-    expect(result.data?.items[0].name).toBe("商品1");
-    expect(result.data?.items[0].point).toBe(1000);
-    expect(result.data?.items[0].id).toBe(encodedId(item.id, "Item"));
-
+    expect(result.data?.orders[0].name).toBe("商品1");
+    expect(result.data?.orders[0].point).toBe(1000);
   });
-
 });

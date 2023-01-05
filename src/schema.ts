@@ -28,8 +28,11 @@ export interface IItem extends RowDataPacket {
 
 export interface IOrder extends RowDataPacket {
   id: string;
-  buyer_id: number;
-  seller_id: number;
+  buyer: string;
+  seller: string;
+  name: string;
+  point: number;
+  created_at: number;
 }
 
 export const decodedId = (id: string) => {
@@ -60,22 +63,33 @@ export const schema = createSchema({
               SELECT
                 u.id,
                 u.email,
+                u.point,
                 i.id AS item_id,
                 i.name AS item_name,
                 i.point AS item_point
               FROM
                 users AS u
-              LEFT JOIN
-                items AS i
+              LEFT JOIN (
+                SELECT 
+                  id,
+                  name,
+                  point,
+                  user_id
+                FROM
+                  items
+                WHERE
+                  del = ?
+              ) AS i
               ON
                 u.id = i.user_id
               WHERE
                 u.id = ?
             `,
-            [decodedId(context.user.id)]
+            [0, decodedId(context.user.id)]
           );
 
           const user: IUser = userRowData[0];
+
           if (!user) {
             throw new GraphQLError("ユーザーが存在しません");
           }
@@ -94,10 +108,10 @@ export const schema = createSchema({
           return {
             id: user.id,
             email: user.email,
+            point: user.point,
             items: items,
           };
         } catch (e) {
-          // console.log(e);
           return e;
         }
       },
@@ -116,14 +130,23 @@ export const schema = createSchema({
               i.point AS item_point
             FROM
               users AS u
-            LEFT JOIN
-              items AS i
+            LEFT JOIN (
+              SELECT 
+                id,
+                name,
+                point,
+                user_id
+              FROM
+                items
+              WHERE
+                del = ?
+            ) AS i
             ON
               u.id = i.user_id
             WHERE
               u.id = ?
           `,
-          [decodedId(args.id)]
+          [0, decodedId(args.id)]
         );
 
         const user: IUser = userRowData[0];
@@ -169,8 +192,9 @@ export const schema = createSchema({
               items
             WHERE
               id = ?
+              AND del = ?
           `,
-            [decodedId(args.id)]
+            [decodedId(args.id), 0]
           );
           const item: IItem = itemRowData[0];
           if (!item) {
@@ -201,7 +225,10 @@ export const schema = createSchema({
               i.user_id
             FROM
               items AS i
-          `
+            WHERE
+              i.del = ?
+          `,
+          [0]
         );
         const items = itemRowData.map((row) => ({
           id: encodedId(row.id, "Item"),
@@ -220,21 +247,23 @@ export const schema = createSchema({
         const [orderRowData] = await context.con.execute<IOrder[]>(
           `
             SELECT
-              o.id,
-              o.user_id AS buyer_id,
-              i.user_id AS seller_id
+              id,
+              name,
+              buyer,
+              seller,
+              point,
+              created_at
             FROM
-              orders AS o
-            LEFT JOIN
-              items AS i
-            ON
-              o.item_id = i.id
+              orders
           `
         );
-        const orders = orderRowData.map((row) => ({
+        const orders = orderRowData.map((row: IOrder) => ({
           id: row.id,
-          buyerId: row.buyer_id,
-          sellerId: row.seller_id,
+          name: row.name,
+          buyer: row.buyer,
+          seller: row.seller,
+          point: row.point,
+          createdAt: row.created_at,
         }));
 
         return orders;
@@ -314,7 +343,6 @@ export const schema = createSchema({
             },
           };
         } catch (e) {
-          console.log(e);
           return e;
         }
       },
@@ -501,13 +529,15 @@ export const schema = createSchema({
         }
         await context.con.execute(
           `
-            DELETE FROM 
+            UPDATE 
               items
+            SET
+              del = ?
             WHERE 
               id = ?
               AND user_id = ?
           `,
-          [decodedId(args.input.id), decodedId(context.user.id)]
+          [1, decodedId(args.input.id), decodedId(context.user.id)]
         );
 
         return { deletedItemId: args.input.id };
@@ -521,22 +551,111 @@ export const schema = createSchema({
         },
         context: GraphQLContext
       ) => {
-        console.log(args);
         if (!context.user) {
           throw new GraphQLError("認証エラーです");
         }
-        await context.con.execute(
+
+        const [itemRowData] = await context.con.execute<IItem[]>(
+          `
+          SELECT
+            i.id,
+            i.name,
+            i.point,
+            i.user_id,
+            u.email
+          FROM
+            items AS i
+          LEFT JOIN
+            users AS u
+          ON
+            i.user_id = u.id
+          WHERE
+            i.id = ?
+            AND i.del = ?
+            AND i.user_id != ?
+        `,
+          [decodedId(args.input.itemId), 0, decodedId(context.user.id)]
+        );
+
+        const item = itemRowData[0];
+
+        const [insertOrderRowData] = await context.con.execute<ResultSetHeader>(
           `
             INSERT INTO
               orders (
                 user_id,
-                item_id
+                item_id,
+                point,
+                buyer,
+                seller,
+                name
               )
             VALUES
-              (?, ?)
+              (?, ?, ?, ?, ?, ?)
           `,
-          [decodedId(context.user.id), decodedId(args.input.itemId)]
+          [
+            decodedId(context.user.id),
+            decodedId(args.input.itemId),
+            item.point,
+            context.user.email,
+            item.email,
+            item.name,
+          ]
         );
+
+        await context.con.execute(
+          `
+            UPDATE
+              users
+            SET
+              point = point - ?
+            WHERE
+              id = ?
+          `,
+          [item.point, decodedId(context.user.id)]
+        );
+
+        await context.con.execute(
+          `
+            UPDATE
+              users
+            SET
+              point = point + ?
+            WHERE
+              id = ?
+          `,
+          [item.point, item.user_id]
+        );
+
+        const [orderRowData] = await context.con.execute<IOrder[]>(
+          `
+            SELECT
+              id,
+              name,
+              point,
+              buyer,
+              seller,
+              created_at
+            FROM
+              orders
+            WHERE
+              id = ?
+          `,
+          [insertOrderRowData.insertId]
+        );
+
+        const order: IOrder = orderRowData[0];
+
+        return {
+          order: {
+            id: order.id,
+            name: order.name,
+            point: order.point,
+            buyer: order.buyer,
+            seller: order.seller,
+            createdAt: order.created_at,
+          },
+        };
       },
     },
   },

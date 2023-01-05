@@ -118,12 +118,12 @@ describe("currentUser query test", () => {
     expect(response.status).toBe(200);
     const result = await response.json();
     expect(result.data.user.email).toBe(user.email);
-    expect(result.data?.user.items[0].name).toBe(items[0].name);
-    expect(result.data?.user.items[0].point).toBe(items[0].point);
-    expect(result.data?.user.items[1].name).toBe(items[1].name);
-    expect(result.data?.user.items[1].point).toBe(items[1].point);
-    expect(result.data?.user.items[2].name).toBe(items[2].name);
-    expect(result.data?.user.items[2].point).toBe(items[2].point);
+    expect(result.data.user.items[0].name).toBe(items[0].name);
+    expect(result.data.user.items[0].point).toBe(items[0].point);
+    expect(result.data.user.items[1].name).toBe(items[1].name);
+    expect(result.data.user.items[1].point).toBe(items[1].point);
+    expect(result.data.user.items[2].name).toBe(items[2].name);
+    expect(result.data.user.items[2].point).toBe(items[2].point);
   });
   it("IDが空の場合", async () => {
     const response = await yoga.fetch(api, {

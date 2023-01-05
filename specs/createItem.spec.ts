@@ -46,7 +46,7 @@ beforeAll(async () => {
   `,
     [user.email, hashPassword, user.point]
   );
-  userToken = await jwt.sign(
+  userToken = jwt.sign(
     {
       id: encodedId(insertUserRowData.insertId, "User"),
       email: user.email,

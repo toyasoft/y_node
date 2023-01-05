@@ -3,7 +3,6 @@ import { decodedId, encodedId, IItem, IUser, schema } from "../src/schema";
 import mysql, { ResultSetHeader } from "mysql2/promise";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
-import { server, User } from "../src/main";
 import { GraphQLError } from "graphql";
 import { api, db, initYoga } from "../jest.setup";
 
@@ -64,7 +63,6 @@ beforeAll(async () => {
 });
 afterAll(async () => {
   con.end();
-  server.close();
 });
 
 describe("itemQueryのテスト", () => {
@@ -78,7 +76,7 @@ describe("itemQueryのテスト", () => {
         point
       }
     }`;
-  it("正常", async () => {
+  it("正常時", async () => {
     const response = await yoga.fetch(api, {
       method: "POST",
       headers: {
@@ -138,6 +136,32 @@ describe("itemQueryのテスト", () => {
       body: JSON.stringify({
         query: query,
         variables: { id: encodedId(9999, "Item") },
+      }),
+    });
+    expect(response.status).toBe(200);
+    const result = await response.json();
+    expect(result.errors[0].message).toBe("商品が存在しません");
+  });
+  it("商品が削除済みの場合", async () => {
+    await con.execute(
+      `
+        UPDATE 
+          items
+        SET
+          del = ?
+        WHERE 
+          id = ?
+      `,
+      [1, decodedId(itemId)]
+    );
+    const response = await yoga.fetch(api, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        query: query,
+        variables: { id: itemId },
       }),
     });
     expect(response.status).toBe(200);

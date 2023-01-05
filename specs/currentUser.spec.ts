@@ -1,11 +1,8 @@
-import { createYoga, YogaServerInstance } from "graphql-yoga";
-import { createConnection } from "mysql2";
-import { encodedId, IUser, schema } from "../src/schema";
+import { YogaServerInstance } from "graphql-yoga";
+import { encodedId } from "../src/schema";
 import mysql, { ResultSetHeader } from "mysql2/promise";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
-import { User } from "../src/main";
-import { GraphQLError } from "graphql";
 import { api, db, initYoga } from "../jest.setup";
 
 let yoga: YogaServerInstance<any, any>;
@@ -16,11 +13,29 @@ const user = {
   password: "1234asdfqWer",
   point: 10000,
 };
+const items = [
+  {
+    name: "商品1",
+    point: 1000,
+  },
+  {
+    name: "商品2",
+    point: 500,
+  },
+  {
+    name: "商品3",
+    point: 800,
+  },
+];
 beforeAll(async () => {
   con = await mysql.createConnection(db);
   await con.execute(`
     DELETE FROM
       users
+  `);
+  await con.execute(`
+    DELETE FROM
+      items
   `);
   yoga = initYoga(con);
   const hashPassword = bcrypt.hashSync(String(user.password), 3);
@@ -39,7 +54,33 @@ beforeAll(async () => {
     [user.email, hashPassword, user.point]
   );
 
-  userToken = await jwt.sign(
+  await con.execute(
+    `
+      INSERT INTO
+        items (
+          name,
+          point,
+          user_id
+        )
+      VALUES
+        (?, ?, ?),
+        (?, ?, ?),
+        (?, ?, ?)
+    `,
+    [
+      items[0].name,
+      items[0].point,
+      insertUserRowData.insertId,
+      items[1].name,
+      items[1].point,
+      insertUserRowData.insertId,
+      items[2].name,
+      items[2].point,
+      insertUserRowData.insertId,
+    ]
+  );
+
+  userToken = jwt.sign(
     {
       id: encodedId(insertUserRowData.insertId, "User"),
       email: user.email,
@@ -70,7 +111,6 @@ describe("currentUserQueryテスト", () => {
           id
           name
           point
-          userId
         }
       }
     }`;
@@ -83,11 +123,18 @@ describe("currentUserQueryテスト", () => {
       },
       body: JSON.stringify({
         query: query,
+        variables: {},
       }),
     });
     expect(response.status).toBe(200);
     const result = await response.json();
-    expect(result.data.currentUser?.email).toBe("test@toyasoft.com");
+    expect(result.data.currentUser.email).toBe(user.email);
+    expect(result.data.currentUser.items[0].name).toBe(items[0].name);
+    expect(result.data.currentUser.items[0].point).toBe(items[0].point);
+    expect(result.data.currentUser.items[1].name).toBe(items[1].name);
+    expect(result.data.currentUser.items[1].point).toBe(items[1].point);
+    expect(result.data.currentUser.items[2].name).toBe(items[2].name);
+    expect(result.data.currentUser.items[2].point).toBe(items[2].point);
   });
   it("未ログイン時", async () => {
     const response = await yoga.fetch(api, {

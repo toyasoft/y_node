@@ -24,7 +24,7 @@ beforeAll(async () => {
   yoga = initYoga(con);
   const hashPassword = bcrypt.hashSync(String(user.password), 3);
 
-  const [insertUserRowData] = await con.execute<ResultSetHeader>(
+  await con.execute<ResultSetHeader>(
     `
     INSERT INTO
       users (
