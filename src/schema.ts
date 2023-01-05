@@ -90,7 +90,7 @@ export const schema = createSchema({
               }
             })
             .filter(Boolean);
-          
+
           return {
             id: user.id,
             email: user.email,
@@ -141,7 +141,7 @@ export const schema = createSchema({
             }
           })
           .filter(Boolean);
-        
+
         return {
           id: user.id,
           email: user.email,
@@ -153,14 +153,13 @@ export const schema = createSchema({
         args: { id: string },
         context: GraphQLContext
       ) => {
-
         try {
-          const itemId = decodedId(args.id)
+          const itemId = decodedId(args.id);
           if (!itemId) {
             throw new GraphQLError("IDが存在しません");
           }
-        const [itemRowData] = await context.con.execute<IItem[]>(
-          `
+          const [itemRowData] = await context.con.execute<IItem[]>(
+            `
             SELECT
               id,
               name,
@@ -171,23 +170,22 @@ export const schema = createSchema({
             WHERE
               id = ?
           `,
-          [decodedId(args.id)]
-        );
-        const item: IItem = itemRowData[0];
-        if (!item) {
-          throw new GraphQLError("商品が存在しません");
-        }
-        
-        return {
-          id: encodedId(item.id, "Item"),
-          name: item.name,
-          point: item.point,
-          userId: item.user_id,
-        };
-      }catch(e) {
+            [decodedId(args.id)]
+          );
+          const item: IItem = itemRowData[0];
+          if (!item) {
+            throw new GraphQLError("商品が存在しません");
+          }
 
-        return e
-      }
+          return {
+            id: encodedId(item.id, "Item"),
+            name: item.name,
+            point: item.point,
+            userId: item.user_id,
+          };
+        } catch (e) {
+          return e;
+        }
       },
       items: async (
         _parent: unknown,
@@ -211,9 +209,8 @@ export const schema = createSchema({
           point: row.point,
           userId: row.user_id,
         }));
-        
+
         return items;
-        
       },
       orders: async (
         _parent: unknown,
@@ -239,9 +236,8 @@ export const schema = createSchema({
           buyerId: row.buyer_id,
           sellerId: row.seller_id,
         }));
-        
+
         return orders;
-      
       },
     },
     Mutation: {
@@ -259,7 +255,7 @@ export const schema = createSchema({
           const regex = /^(?=.*[A-Z])(?=.*[0-9])[a-zA-Z0-9.?/-]{8,20}$/;
           if (!regex.test(args.input.password)) {
             throw new GraphQLError(
-              "パスワードは8文字以上20文字以内で少なくとも英語と数字を一文字以上入力してください"
+              "パスワードは8文字以上20文字以内で少なくとも英語大文字と英語小文字と数字を一文字以上入力してください"
             );
           }
           const [checkUserRowData] = await context.con.execute<IUser[]>(
@@ -309,7 +305,7 @@ export const schema = createSchema({
             [insertUserRowData.insertId]
           );
           const user = userRowData[0];
-          
+
           return {
             user: {
               id: user.id,
@@ -349,7 +345,7 @@ export const schema = createSchema({
 
           const user = userRowData[0];
           if (!user) {
-            throw new GraphQLError("ユーザーが存在しません");
+            throw new GraphQLError("ログインできません");
           }
           const checkPassword = bcrypt.compareSync(
             args.input.password,
@@ -358,7 +354,7 @@ export const schema = createSchema({
           if (!checkPassword) {
             throw new GraphQLError("ログインできません");
           }
-          
+
           return {
             user: {
               id: encodedId(user.id, "User"),
@@ -424,7 +420,7 @@ export const schema = createSchema({
           );
 
           const item: IItem = itemRowData[0];
-          
+
           return {
             item: {
               id: item.id,
@@ -482,10 +478,10 @@ export const schema = createSchema({
           [decodedId(args.input.id)]
         );
         const item = itemRowData[0];
-        
+
         return {
           item: {
-            id: item.id,
+            id: encodedId(item.id, "Item"),
             name: item.name,
             point: item.point,
           },
@@ -513,7 +509,7 @@ export const schema = createSchema({
           `,
           [decodedId(args.input.id), decodedId(context.user.id)]
         );
-        
+
         return { deletedItemId: args.input.id };
       },
       createOrder: async (

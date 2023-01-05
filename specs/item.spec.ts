@@ -9,8 +9,16 @@ import { api, db, initYoga } from "../jest.setup";
 
 let yoga: YogaServerInstance<any, any>;
 let con: mysql.Connection;
-let item: IItem;
-
+let itemId = "";
+const user = {
+  email: "test@toyasoft.com",
+  password: "1234asdfqWer",
+  point: 10000,
+};
+const item = {
+  name: "商品1",
+  point: 1000,
+};
 beforeAll(async () => {
   con = await mysql.createConnection(db);
   await con.execute(`
@@ -21,8 +29,8 @@ beforeAll(async () => {
     DELETE FROM
       items
   `);
-  yoga = initYoga(con)
-  const hashPassword = bcrypt.hashSync(String("1234asdfqwer"), 3);
+  yoga = initYoga(con);
+  const hashPassword = bcrypt.hashSync(String(user.password), 3);
 
   const [insertUserRowData] = await con.execute<ResultSetHeader>(
     `
@@ -35,7 +43,7 @@ beforeAll(async () => {
     VALUES
       (?, ?, ?)
   `,
-    ["test@toyasoft.com", hashPassword, 10000]
+    [user.email, hashPassword, user.point]
   );
 
   const [insertItemRowData] = await con.execute<ResultSetHeader>(
@@ -49,28 +57,14 @@ beforeAll(async () => {
       VALUES
         (?, ?, ?)
     `,
-    ["商品1", 1000, insertUserRowData.insertId]
+    [item.name, item.point, insertUserRowData.insertId]
   );
 
-  const [itemRowData] = await con.execute<IItem[]>(
-    `
-      SELECT
-        id,
-        name,
-        point
-      FROM
-        items
-      WHERE
-        id = ?
-    `,
-    [insertItemRowData.insertId]
-  );
-
-  item = itemRowData[0];
+  itemId = encodedId(insertItemRowData.insertId, "Item");
 });
 afterAll(async () => {
   con.end();
-server.close()
+  server.close();
 });
 
 describe("itemQueryのテスト", () => {
@@ -92,14 +86,14 @@ describe("itemQueryのテスト", () => {
       },
       body: JSON.stringify({
         query: query,
-        variables: { id: encodedId(item.id, "Item") },
+        variables: { id: itemId },
       }),
     });
     expect(response.status).toBe(200);
     const result = await response.json();
-    expect(result.data?.item.name).toBe("商品1");
-    expect(result.data?.item.point).toBe(1000);
-    expect(result.data?.item.id).toBe(encodedId(item.id, "Item"));
+    expect(result.data?.item.name).toBe(item.name);
+    expect(result.data?.item.point).toBe(item.point);
+    expect(result.data?.item.id).toBe(itemId);
   });
   it("idがnullの場合", async () => {
     const response = await yoga.fetch(api, {
@@ -133,11 +127,7 @@ describe("itemQueryのテスト", () => {
     });
     expect(response.status).toBe(200);
     const result = await response.json();
-    result.errors.map((error: GraphQLError) => {
-      expect(error.message).toBe(
-        'IDが存在しません'
-      );
-    });
+    expect(result.errors[0].message).toBe("IDが存在しません");
   });
   it("商品が存在しない場合", async () => {
     const response = await yoga.fetch(api, {
@@ -147,15 +137,11 @@ describe("itemQueryのテスト", () => {
       },
       body: JSON.stringify({
         query: query,
-        variables: { id: encodedId(1000, "Item") },
+        variables: { id: encodedId(9999, "Item") },
       }),
     });
     expect(response.status).toBe(200);
     const result = await response.json();
-    result.errors.map((error: GraphQLError) => {
-      expect(error.message).toBe(
-        '商品が存在しません'
-      );
-    });
+    expect(result.errors[0].message).toBe("商品が存在しません");
   });
 });

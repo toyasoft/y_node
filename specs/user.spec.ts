@@ -1,48 +1,43 @@
 import { createYoga, YogaServerInstance } from "graphql-yoga";
-import { createConnection } from "mysql2";
 import { encodedId, IUser, schema } from "../src/schema";
 import mysql, { ResultSetHeader } from "mysql2/promise";
-import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
-import { User } from "../src/main";
-import { GraphQLError } from "graphql";
+import { api, db, initYoga } from "../jest.setup";
 
 let yoga: YogaServerInstance<any, any>;
 let con: mysql.Connection;
-let userToken = "";
+let userId = "";
+const user = {
+  email: "test@toyasoft.com",
+  password: "1234asdfqWer",
+  point: 10000,
+};
+const items = [
+  {
+    name: "商品1",
+    point: 1000,
+  },
+  {
+    name: "商品2",
+    point: 500,
+  },
+  {
+    name: "商品3",
+    point: 800,
+  },
+];
 beforeAll(async () => {
-  con = await mysql.createConnection({
-    host: "y_node-mysql-test-1",
-    user: "root",
-    password: "root",
-    database: "test",
-    port: 3306,
-  });
+  con = await mysql.createConnection(db);
   await con.execute(`
     DELETE FROM
       users
   `);
-  yoga = createYoga({
-    schema,
-    async context({ request }) {
-      const token = request.headers.get("authorization");
-      let user: User | undefined;
-      if (token) {
-        jwt.verify(
-          token,
-          process.env.AUTH_SECRET || "",
-          function (err: any, decoded: any) {
-            user = decoded;
-          }
-        );
-      }
-      return {
-        con: con,
-        user: user,
-      };
-    },
-  });
-  const hashPassword = bcrypt.hashSync(String("1234asdfqwer"), 3);
+  await con.execute(`
+    DELETE FROM
+      items
+  `);
+  yoga = initYoga(con);
+  const hashPassword = bcrypt.hashSync(String(user.password), 3);
 
   const [insertUserRowData] = await con.execute<ResultSetHeader>(
     `
@@ -55,33 +50,34 @@ beforeAll(async () => {
     VALUES
       (?, ?, ?)
   `,
-    ["test@toyasoft.com", hashPassword, 10000]
+    [user.email, hashPassword, user.point]
   );
+  userId = encodedId(insertUserRowData.insertId, "User");
 
-  const [userRowData] = await con.execute<IUser[]>(
+  await con.execute(
     `
-    SELECT
-      id,
-      email,
-      point
-    FROM
-      users
-    WHERE
-      id = ?
-  `,
-    [insertUserRowData.insertId]
-  );
-  const user = userRowData[0];
-  userToken = await jwt.sign(
-    {
-      id: encodedId(user.id, "User"),
-      email: user.email,
-      type: "user",
-    },
-    String(process.env.AUTH_SECRET),
-    {
-      expiresIn: "365d",
-    }
+      INSERT INTO
+        items (
+          name,
+          point,
+          user_id
+        )
+      VALUES
+        (?, ?, ?),
+        (?, ?, ?),
+        (?, ?, ?)
+    `,
+    [
+      items[0].name,
+      items[0].point,
+      insertUserRowData.insertId,
+      items[1].name,
+      items[1].point,
+      insertUserRowData.insertId,
+      items[2].name,
+      items[2].point,
+      insertUserRowData.insertId,
+    ]
   );
 });
 afterAll(async () => {
@@ -94,45 +90,58 @@ afterEach(async () => {
 });
 
 describe("currentUser query test", () => {
-  const query = JSON.stringify({
-    query: `{ 
-      currentUser {
+  const query = `
+    query userQuery($id: ID!) { 
+      user(id: $id) {
         email
         id
         items {
           id
           name
           point
-          userId
         }
       }
-    }`,
-  });
-  it("normally", async () => {
-    const response = await yoga.fetch("http://localhost:4000/graphql", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `${userToken}`,
-      },
-      body: query,
-    });
-    expect(response.status).toBe(200);
-    const result = await response.json();
-    expect(result.data.currentUser.email).toBe("test@toyasoft.com");
-  });
-  it("if specify userToken", async () => {
-    const response = await yoga.fetch("http://localhost:4000/graphql", {
+    }`;
+  it("通常時", async () => {
+    const response = await yoga.fetch(api, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: query,
+      body: JSON.stringify({
+        query: query,
+        variables: {
+          id: userId,
+        },
+      }),
     });
     expect(response.status).toBe(200);
     const result = await response.json();
-    result.errors.map((error: GraphQLError) => {
-      expect(error.message).toBe("認証エラーです");
+    expect(result.data.user.email).toBe(user.email);
+    expect(result.data?.user.items[0].name).toBe(items[0].name);
+    expect(result.data?.user.items[0].point).toBe(items[0].point);
+    expect(result.data?.user.items[1].name).toBe(items[1].name);
+    expect(result.data?.user.items[1].point).toBe(items[1].point);
+    expect(result.data?.user.items[2].name).toBe(items[2].name);
+    expect(result.data?.user.items[2].point).toBe(items[2].point);
+  });
+  it("IDが空の場合", async () => {
+    const response = await yoga.fetch(api, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        query: query,
+        variables: {
+          id: null,
+        },
+      }),
     });
+    expect(response.status).toBe(400);
+    const result = await response.json();
+    expect(result.errors[0].message).toBe(
+      'Variable "$id" of non-null type "ID!" must not be null.'
+    );
   });
 });

@@ -6,19 +6,37 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import { User } from "../src/main";
 import { GraphQLError } from "graphql";
-import { db, initYoga } from "../jest.setup";
+import { api, db, initYoga } from "../jest.setup";
 
 let yoga: YogaServerInstance<any, any>;
 let con: mysql.Connection;
-let userToken = "";
+const user = {
+  email: "test@toyasoft.com",
+  password: "1234asdfqWer",
+  point: 10000,
+};
 beforeAll(async () => {
   con = await mysql.createConnection(db);
   await con.execute(`
     DELETE FROM
       users
   `);
-  yoga = initYoga(con)
+  yoga = initYoga(con);
+  const hashPassword = bcrypt.hashSync(String(user.password), 3);
 
+  const [insertUserRowData] = await con.execute<ResultSetHeader>(
+    `
+    INSERT INTO
+      users (
+        email,
+        password,
+        point
+      )
+    VALUES
+      (?, ?, ?)
+  `,
+    [user.email, hashPassword, user.point]
+  );
 });
 afterAll(async () => {
   con.end();
@@ -30,34 +48,95 @@ afterEach(async () => {
 });
 
 describe("signinMutationテスト", () => {
-  type SigninInput = {
-    email: string
-    password: string
-  }
-  const query = `mutation signinMutation($input: {$email: string}){ 
-      signin(input: $input) {
+  const query = `
+    mutation signinMutation($email: String! $password: String!){ 
+      signin(input: {email: $email, password: $password}) {
         user {
           email
         }
         userToken
       }
     }`;
-  it("normally", async () => {
-    const response = await yoga.fetch("http://localhost:4000/graphql", {
+  it("正常時", async () => {
+    const response = await yoga.fetch(api, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `${userToken}`,
       },
       body: JSON.stringify({
         query: query,
-        variables: { email: "info@toyasoft.com", password: "qwerty" },
+        variables: { email: user.email, password: user.password },
       }),
     });
-    // expect(response.status).toBe(200);
+    expect(response.status).toBe(200);
     const result = await response.json();
-    console.log(result)
-    // expect(result.data.currentUser.email).toBe("test@toyasoft.com");
+    expect(result.data.signin.user.email).toBe(user.email);
+    expect(Boolean(result.data.signin.userToken)).toBe(true);
   });
-
+  it("ユーザーが存在しない場合", async () => {
+    const response = await yoga.fetch(api, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        query: query,
+        variables: { email: "nothing@toyasoft.com", password: user.password },
+      }),
+    });
+    expect(response.status).toBe(200);
+    const result = await response.json();
+    expect(result.data).toBe(null);
+    expect(result.errors[0].message).toBe("ログインできません");
+  });
+  it("パスワードが間違えている場合", async () => {
+    const response = await yoga.fetch(api, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        query: query,
+        variables: { email: user.email, password: "wrongpass" },
+      }),
+    });
+    expect(response.status).toBe(200);
+    const result = await response.json();
+    expect(result.data).toBe(null);
+    expect(result.errors[0].message).toBe("ログインできません");
+  });
+  it("メールアドレスが空の場合", async () => {
+    const response = await yoga.fetch(api, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        query: query,
+        variables: { email: null, password: user.password },
+      }),
+    });
+    expect(response.status).toBe(400);
+    const result = await response.json();
+    expect(result.errors[0].message).toBe(
+      'Variable "$email" of non-null type "String!" must not be null.'
+    );
+  });
+  it("パスワードが空の場合", async () => {
+    const response = await yoga.fetch(api, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        query: query,
+        variables: { email: user.email, password: null },
+      }),
+    });
+    expect(response.status).toBe(400);
+    const result = await response.json();
+    expect(result.errors[0].message).toBe(
+      'Variable "$password" of non-null type "String!" must not be null.'
+    );
+  });
 });
