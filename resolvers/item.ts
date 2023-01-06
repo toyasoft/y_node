@@ -1,6 +1,6 @@
 import { GraphQLError } from "graphql";
 import { GraphQLContext } from "../src/main";
-import { decodedId, encodedId, IItem, IUser } from "../src/schema";
+import { decodedId, encodedId, IItem } from "../src/schema";
 
 export default {
   Query: {
@@ -12,7 +12,7 @@ export default {
       try {
         const itemId = decodedId(args.id);
         if (!itemId) {
-          throw new GraphQLError("IDが存在しません");
+          throw new GraphQLError("商品IDが無効です");
         }
         const [itemRowData] = await context.con.execute<IItem[]>(
           `

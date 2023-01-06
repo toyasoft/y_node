@@ -1,9 +1,8 @@
-import { GraphQLError } from "graphql";
-import { ResultSetHeader } from "mysql2";
-import { GraphQLContext } from "../src/main";
-import { decodedId, encodedId, IItem, IOrder, IUser } from "../src/schema";
 import bcrypt from "bcryptjs";
+import { GraphQLError } from "graphql";
 import jwt from "jsonwebtoken";
+import { GraphQLContext } from "../src/main";
+import { encodedId, IUser } from "../src/schema";
 
 export default {
   Mutation: {

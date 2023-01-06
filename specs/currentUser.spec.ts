@@ -1,9 +1,9 @@
-import { YogaServerInstance } from "graphql-yoga";
-import { encodedId } from "../src/schema";
-import mysql, { ResultSetHeader } from "mysql2/promise";
-import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
+import { YogaServerInstance } from "graphql-yoga";
+import jwt from "jsonwebtoken";
+import mysql, { ResultSetHeader } from "mysql2/promise";
 import { api, db, initYoga } from "../jest.setup";
+import { encodedId } from "../src/schema";
 
 let yoga: YogaServerInstance<any, any>;
 let con: mysql.Connection;
@@ -94,11 +94,6 @@ beforeAll(async () => {
 });
 afterAll(async () => {
   con.end();
-});
-beforeEach(async () => {});
-
-afterEach(async () => {
-  // con.end();
 });
 
 describe("currentUserQueryテスト", () => {

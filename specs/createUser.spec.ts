@@ -1,7 +1,6 @@
+import bcrypt from "bcryptjs";
 import { YogaServerInstance } from "graphql-yoga";
 import mysql, { ResultSetHeader } from "mysql2/promise";
-import bcrypt from "bcryptjs";
-
 import { api, db, initYoga } from "../jest.setup";
 
 let yoga: YogaServerInstance<any, any>;
@@ -21,11 +20,6 @@ beforeAll(async () => {
 });
 afterAll(async () => {
   con.end();
-});
-beforeEach(async () => {});
-
-afterEach(async () => {
-  // con.end();
 });
 
 describe("createUserMutationテスト", () => {
@@ -52,6 +46,40 @@ describe("createUserMutationテスト", () => {
     const result = await response.json();
     expect(result.data.createUser.user.email).toBe(user.email);
   });
+  it("メールアドレスが空の場合", async () => {
+    const response = await yoga.fetch(api, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        query: query,
+        variables: { email: null, password: user.password },
+      }),
+    });
+    expect(response.status).toBe(400);
+    const result = await response.json();
+    expect(result.errors[0].message).toBe(
+      'Variable "$email" of non-null type "String!" must not be null.'
+    );
+  });
+  it("パスワードが空の場合", async () => {
+    const response = await yoga.fetch(api, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        query: query,
+        variables: { email: user.email, password: null },
+      }),
+    });
+    expect(response.status).toBe(400);
+    const result = await response.json();
+    expect(result.errors[0].message).toBe(
+      'Variable "$password" of non-null type "String!" must not be null.'
+    );
+  });
   it("パスワードが有効でない場合", async () => {
     const response = await yoga.fetch(api, {
       method: "POST",
@@ -68,6 +96,42 @@ describe("createUserMutationテスト", () => {
     expect(result.errors[0].message).toBe(
       "パスワードは8文字以上20文字以内で少なくとも英語大文字と英語小文字と数字を一文字以上入力してください"
     );
+  });
+  it("メールアドレスが正しくない場合", async () => {
+    const response = await yoga.fetch(api, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        query: query,
+        variables: {
+          email: "example",
+          password: user.password,
+        },
+      }),
+    });
+    expect(response.status).toBe(200);
+    const result = await response.json();
+    expect(result.errors[0].message).toBe("メールアドレスではありません");
+  });
+  it("メールアドレスが256文字以上の場合", async () => {
+    const response = await yoga.fetch(api, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        query: query,
+        variables: {
+          email: "test@" + "a".repeat(256) + ".com",
+          password: user.password,
+        },
+      }),
+    });
+    expect(response.status).toBe(200);
+    const result = await response.json();
+    expect(result.errors[0].message).toBe("文字数オーバーです");
   });
   it("メールアドレスが重複している場合", async () => {
     const hashPassword = bcrypt.hashSync(String(user.password), 3);

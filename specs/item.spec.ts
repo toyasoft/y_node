@@ -1,14 +1,14 @@
-import { createYoga, YogaServerInstance } from "graphql-yoga";
-import { decodedId, encodedId, IItem, IUser, schema } from "../src/schema";
-import mysql, { ResultSetHeader } from "mysql2/promise";
-import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import { GraphQLError } from "graphql";
+import { YogaServerInstance } from "graphql-yoga";
+import mysql, { ResultSetHeader } from "mysql2/promise";
 import { api, db, initYoga } from "../jest.setup";
+import { encodedId } from "../src/schema";
 
 let yoga: YogaServerInstance<any, any>;
 let con: mysql.Connection;
 let itemId = "";
+let delItemId = "";
 const user = {
   email: "test@toyasoft.com",
   password: "1234asdfqWer",
@@ -60,6 +60,22 @@ beforeAll(async () => {
   );
 
   itemId = encodedId(insertItemRowData.insertId, "Item");
+  const [insertDelItemRowData] = await con.execute<ResultSetHeader>(
+    `
+      INSERT INTO
+        items (
+          name,
+          point,
+          user_id,
+          del
+        )
+      VALUES
+        (?, ?, ?, 1)
+    `,
+    [item.name, item.point, insertUserRowData.insertId]
+  );
+
+  delItemId = encodedId(insertDelItemRowData.insertId, "Item");
 });
 afterAll(async () => {
   con.end();
@@ -93,7 +109,7 @@ describe("itemQueryのテスト", () => {
     expect(result.data?.item.point).toBe(item.point);
     expect(result.data?.item.id).toBe(itemId);
   });
-  it("idがnullの場合", async () => {
+  it("商品IDが空の場合", async () => {
     const response = await yoga.fetch(api, {
       method: "POST",
       headers: {
@@ -112,7 +128,7 @@ describe("itemQueryのテスト", () => {
       );
     });
   });
-  it("idが存在しない場合", async () => {
+  it("商品IDが無効の場合", async () => {
     const response = await yoga.fetch(api, {
       method: "POST",
       headers: {
@@ -125,7 +141,7 @@ describe("itemQueryのテスト", () => {
     });
     expect(response.status).toBe(200);
     const result = await response.json();
-    expect(result.errors[0].message).toBe("IDが存在しません");
+    expect(result.errors[0].message).toBe("商品IDが無効です");
   });
   it("商品が存在しない場合", async () => {
     const response = await yoga.fetch(api, {
@@ -143,17 +159,6 @@ describe("itemQueryのテスト", () => {
     expect(result.errors[0].message).toBe("商品が存在しません");
   });
   it("商品が削除済みの場合", async () => {
-    await con.execute(
-      `
-        UPDATE 
-          items
-        SET
-          del = ?
-        WHERE 
-          id = ?
-      `,
-      [1, decodedId(itemId)]
-    );
     const response = await yoga.fetch(api, {
       method: "POST",
       headers: {
@@ -161,7 +166,7 @@ describe("itemQueryのテスト", () => {
       },
       body: JSON.stringify({
         query: query,
-        variables: { id: itemId },
+        variables: { id: delItemId },
       }),
     });
     expect(response.status).toBe(200);

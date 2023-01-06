@@ -1,11 +1,6 @@
-import { createYoga, YogaServerInstance } from "graphql-yoga";
-import { createConnection } from "mysql2";
-import { encodedId, IUser, schema } from "../src/schema";
-import mysql, { ResultSetHeader } from "mysql2/promise";
-import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
-import { User } from "../src/main";
-import { GraphQLError } from "graphql";
+import { YogaServerInstance } from "graphql-yoga";
+import mysql, { ResultSetHeader } from "mysql2/promise";
 import { api, db, initYoga } from "../jest.setup";
 
 let yoga: YogaServerInstance<any, any>;
@@ -40,11 +35,6 @@ beforeAll(async () => {
 });
 afterAll(async () => {
   con.end();
-});
-beforeEach(async () => {});
-
-afterEach(async () => {
-  // con.end();
 });
 
 describe("signinMutationテスト", () => {

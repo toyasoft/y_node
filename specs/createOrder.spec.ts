@@ -1,17 +1,15 @@
-import { createYoga, YogaServerInstance } from "graphql-yoga";
-import { createConnection } from "mysql2";
-import { encodedId, IUser, schema } from "../src/schema";
-import mysql, { ResultSetHeader } from "mysql2/promise";
-import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
-import { User } from "../src/main";
-import { GraphQLError } from "graphql";
+import { YogaServerInstance } from "graphql-yoga";
+import jwt from "jsonwebtoken";
+import mysql, { ResultSetHeader } from "mysql2/promise";
 import { api, db, initYoga } from "../jest.setup";
+import { encodedId } from "../src/schema";
 
 let yoga: YogaServerInstance<any, any>;
 let con: mysql.Connection;
 let userToken = "";
 let itemId = "";
+let delItemId = "";
 const users = [
   {
     email: "test@toyasoft.com",
@@ -44,7 +42,6 @@ beforeAll(async () => {
   `);
   yoga = initYoga(con);
   const hashPassword0 = bcrypt.hashSync(String(users[0].password), 3);
-  
 
   const [insertUserRowData0] = await con.execute<ResultSetHeader>(
     `
@@ -89,6 +86,23 @@ beforeAll(async () => {
 
   itemId = encodedId(insertItemRowData.insertId, "Item");
 
+  const [insertDelItemRowData] = await con.execute<ResultSetHeader>(
+    `
+      INSERT INTO
+        items (
+          name,
+          point,
+          user_id,
+          del
+        )
+      VALUES
+        (?, ?, ?, 1)
+    `,
+    [item.name, item.point, insertUserRowData1.insertId]
+  );
+
+  delItemId = encodedId(insertDelItemRowData.insertId, "Item");
+
   userToken = jwt.sign(
     {
       id: encodedId(insertUserRowData0.insertId, "User"),
@@ -103,11 +117,6 @@ beforeAll(async () => {
 });
 afterAll(async () => {
   con.end();
-});
-beforeEach(async () => {});
-
-afterEach(async () => {
-  // con.end();
 });
 
 describe("createOrderMutationテスト", () => {
@@ -152,9 +161,12 @@ describe("createOrderMutationテスト", () => {
     expect(result.data.createOrder.order.point).toBe(item.point);
     expect(result.data.createOrder.order.buyer).toBe(users[0].email);
     expect(result.data.createOrder.order.seller).toBe(users[1].email);
-    expect(result.data.createOrder.buyer.point).toBe(users[0].point - result.data.createOrder.order.point);
-    expect(result.data.createOrder.seller.point).toBe(users[0].point + result.data.createOrder.order.point);
-
+    expect(result.data.createOrder.buyer.point).toBe(
+      users[0].point - result.data.createOrder.order.point
+    );
+    expect(result.data.createOrder.seller.point).toBe(
+      users[0].point + result.data.createOrder.order.point
+    );
   });
   it("未ログインの場合", async () => {
     const response = await yoga.fetch(api, {
@@ -189,5 +201,37 @@ describe("createOrderMutationテスト", () => {
     expect(result.errors[0].message).toBe(
       'Variable "$itemId" of non-null type "ID!" must not be null.'
     );
+  });
+  it("商品IDが無効の場合", async () => {
+    const response = await yoga.fetch(api, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `${userToken}`,
+      },
+      body: JSON.stringify({
+        query: query,
+        variables: { itemId: "example" },
+      }),
+    });
+    expect(response.status).toBe(200);
+    const result = await response.json();
+    expect(result.errors[0].message).toBe("商品IDが無効です");
+  });
+  it("商品が存在しない場合", async () => {
+    const response = await yoga.fetch(api, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `${userToken}`,
+      },
+      body: JSON.stringify({
+        query: query,
+        variables: { itemId: delItemId },
+      }),
+    });
+    expect(response.status).toBe(200);
+    const result = await response.json();
+    expect(result.errors[0].message).toBe("商品が存在しません");
   });
 });

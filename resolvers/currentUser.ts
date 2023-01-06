@@ -2,19 +2,18 @@ import { GraphQLError } from "graphql";
 import { GraphQLContext } from "../src/main";
 import { decodedId, encodedId, IUser } from "../src/schema";
 
-
 export default {
   Query: {
     currentUser: async (
       _parent: unknown,
       _args: unknown,
       context: GraphQLContext
-      ) => {
+    ) => {
       try {
-          if (!context.user) {
+        if (!context.user) {
           throw new GraphQLError("認証エラーです");
-          }
-          const [userRowData] = await context.con.execute<IUser[]>(
+        }
+        const [userRowData] = await context.con.execute<IUser[]>(
           `
               SELECT
               u.id,
@@ -42,34 +41,34 @@ export default {
               u.id = ?
           `,
           [0, decodedId(context.user.id)]
-          );
+        );
 
-          const user: IUser = userRowData[0];
+        const user: IUser = userRowData[0];
 
-          if (!user) {
+        if (!user) {
           throw new GraphQLError("ユーザーが存在しません");
-          }
-          const items = userRowData
+        }
+        const items = userRowData
           .map((row: IUser) => {
-              if (row.item_id) {
+            if (row.item_id) {
               return {
-                  id: encodedId(row.item_id, "Item"),
-                  name: row.item_name,
-                  point: row.item_point,
+                id: encodedId(row.item_id, "Item"),
+                name: row.item_name,
+                point: row.item_point,
               };
-              }
+            }
           })
           .filter(Boolean);
 
-          return {
+        return {
           id: user.id,
           email: user.email,
           point: user.point,
           items: items,
-          };
+        };
       } catch (e) {
-          return e;
+        return e;
       }
-      },
+    },
   },
 };

@@ -1,8 +1,8 @@
-import { createYoga, YogaServerInstance } from "graphql-yoga";
-import { encodedId, IUser, schema } from "../src/schema";
-import mysql, { ResultSetHeader } from "mysql2/promise";
 import bcrypt from "bcryptjs";
+import { YogaServerInstance } from "graphql-yoga";
+import mysql, { ResultSetHeader } from "mysql2/promise";
 import { api, db, initYoga } from "../jest.setup";
+import { encodedId } from "../src/schema";
 
 let yoga: YogaServerInstance<any, any>;
 let con: mysql.Connection;
@@ -83,11 +83,6 @@ beforeAll(async () => {
 afterAll(async () => {
   con.end();
 });
-beforeEach(async () => {});
-
-afterEach(async () => {
-  // con.end();
-});
 
 describe("currentUser query test", () => {
   const query = `
@@ -125,7 +120,7 @@ describe("currentUser query test", () => {
     expect(result.data.user.items[2].name).toBe(items[2].name);
     expect(result.data.user.items[2].point).toBe(items[2].point);
   });
-  it("IDが空の場合", async () => {
+  it("ユーザーIDが空の場合", async () => {
     const response = await yoga.fetch(api, {
       method: "POST",
       headers: {
@@ -143,5 +138,39 @@ describe("currentUser query test", () => {
     expect(result.errors[0].message).toBe(
       'Variable "$id" of non-null type "ID!" must not be null.'
     );
+  });
+  it("ユーザーIDが無効の場合", async () => {
+    const response = await yoga.fetch(api, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        query: query,
+        variables: {
+          id: "example",
+        },
+      }),
+    });
+    expect(response.status).toBe(200);
+    const result = await response.json();
+    expect(result.errors[0].message).toBe("ユーザーIDが無効です");
+  });
+  it("ユーザーが存在しない場合", async () => {
+    const response = await yoga.fetch(api, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        query: query,
+        variables: {
+          id: encodedId(9999, "User"),
+        },
+      }),
+    });
+    expect(response.status).toBe(200);
+    const result = await response.json();
+    expect(result.errors[0].message).toBe("ユーザーが存在しません");
   });
 });

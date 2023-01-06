@@ -1,23 +1,19 @@
-import { createSchema, GraphQLSchemaWithContext } from "graphql-yoga";
-import path from "path";
 import { loadFilesSync } from "@graphql-tools/load-files";
-import bcrypt from "bcryptjs";
-import { GraphQLError } from "graphql";
-import jwt from "jsonwebtoken";
-import { GraphQLContext } from "./main";
-import { ResultSetHeader, RowDataPacket } from "mysql2";
 import { mergeResolvers } from "@graphql-tools/merge";
+import { createSchema } from "graphql-yoga";
+import { RowDataPacket } from "mysql2";
+import path from "path";
+import createItem from "../resolvers/createItem";
+import createOrder from "../resolvers/createOrder";
+import createUser from "../resolvers/createUser";
 import currentUser from "../resolvers/currentUser";
-import user from "../resolvers/user";
+import deleteItem from "../resolvers/deleteItem";
 import item from "../resolvers/item";
 import items from "../resolvers/items";
 import orders from "../resolvers/orders";
-import createUser from "../resolvers/createUser";
 import signin from "../resolvers/signin";
-import createItem from "../resolvers/createItem";
 import updateItem from "../resolvers/updateItem";
-import deleteItem from "../resolvers/deleteItem";
-import createOrder from "../resolvers/createOrder";
+import user from "../resolvers/user";
 
 require("dotenv").config();
 
@@ -68,10 +64,10 @@ const resolvers: any = mergeResolvers([
   createItem,
   updateItem,
   deleteItem,
-  createOrder
+  createOrder,
 ]);
 
 export const schema = createSchema({
   typeDefs: typeDefs,
-  resolvers: resolvers
+  resolvers: resolvers,
 });

@@ -1,12 +1,9 @@
-import { createYoga, YogaServerInstance } from "graphql-yoga";
-import { createConnection } from "mysql2";
-import { encodedId, IUser, schema } from "../src/schema";
-import mysql, { ResultSetHeader } from "mysql2/promise";
-import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
-import { User } from "../src/main";
-import { GraphQLError } from "graphql";
+import { YogaServerInstance } from "graphql-yoga";
+import jwt from "jsonwebtoken";
+import mysql, { ResultSetHeader } from "mysql2/promise";
 import { api, db, initYoga } from "../jest.setup";
+import { encodedId } from "../src/schema";
 
 let yoga: YogaServerInstance<any, any>;
 let con: mysql.Connection;
@@ -22,6 +19,7 @@ const item = {
 };
 
 let itemId = "";
+let delItemId = "";
 beforeAll(async () => {
   con = await mysql.createConnection(db);
   await con.execute(`
@@ -73,14 +71,25 @@ beforeAll(async () => {
     [item.name, item.point, insertUserRowData.insertId]
   );
   itemId = encodedId(insertItemRowData.insertId, "Item");
+  const [insertDelItemRowData] = await con.execute<ResultSetHeader>(
+    `
+      INSERT INTO
+        items (
+          name,
+          point,
+          user_id,
+          del
+        )
+      VALUES
+        (?, ?, ?, 1)
+    `,
+    [item.name, item.point, insertUserRowData.insertId]
+  );
+
+  delItemId = encodedId(insertDelItemRowData.insertId, "Item");
 });
 afterAll(async () => {
   con.end();
-});
-beforeEach(async () => {});
-
-afterEach(async () => {
-  // con.end();
 });
 
 describe("deleteItemMutationテスト", () => {
@@ -126,7 +135,7 @@ describe("deleteItemMutationテスト", () => {
     expect(result.data).toBe(null);
     expect(result.errors[0].message).toBe("認証エラーです");
   });
-  it("IDが空の場合", async () => {
+  it("商品IDが空の場合", async () => {
     const response = await yoga.fetch(api, {
       method: "POST",
       headers: {
@@ -145,5 +154,41 @@ describe("deleteItemMutationテスト", () => {
     expect(result.errors[0].message).toBe(
       'Variable "$id" of non-null type "ID!" must not be null.'
     );
+  });
+  it("商品IDが無効の場合", async () => {
+    const response = await yoga.fetch(api, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `${userToken}`,
+      },
+      body: JSON.stringify({
+        query: query,
+        variables: {
+          id: "example",
+        },
+      }),
+    });
+    expect(response.status).toBe(200);
+    const result = await response.json();
+    expect(result.errors[0].message).toBe("商品IDが無効です");
+  });
+  it("商品が削除済みの場合", async () => {
+    const response = await yoga.fetch(api, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `${userToken}`,
+      },
+      body: JSON.stringify({
+        query: query,
+        variables: {
+          id: delItemId,
+        },
+      }),
+    });
+    expect(response.status).toBe(200);
+    const result = await response.json();
+    expect(result.errors[0].message).toBe("商品は削除済みです");
   });
 });

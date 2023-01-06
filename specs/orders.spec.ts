@@ -1,7 +1,6 @@
+import bcrypt from "bcryptjs";
 import { YogaServerInstance } from "graphql-yoga";
 import mysql, { ResultSetHeader } from "mysql2/promise";
-import jwt from "jsonwebtoken";
-import bcrypt from "bcryptjs";
 import { api, db, initYoga } from "../jest.setup";
 
 let yoga: YogaServerInstance<any, any>;
@@ -107,11 +106,6 @@ beforeAll(async () => {
 });
 afterAll(async () => {
   con.end();
-});
-beforeEach(async () => {});
-
-afterEach(async () => {
-  // con.end();
 });
 
 describe("ordersQueryテスト", () => {

@@ -1,7 +1,7 @@
 import { GraphQLError } from "graphql";
 import { ResultSetHeader } from "mysql2";
 import { GraphQLContext } from "../src/main";
-import { decodedId, encodedId, IItem, IOrder, IUser } from "../src/schema";
+import { decodedId } from "../src/schema";
 
 export default {
   Mutation: {
@@ -17,7 +17,10 @@ export default {
       if (!context.user) {
         throw new GraphQLError("認証エラーです");
       }
-      await context.con.execute(
+      if (!decodedId(args.input.id)) {
+        throw new GraphQLError("商品IDが無効です");
+      }
+      const [updateItemRowData] = await context.con.execute<ResultSetHeader>(
         `
           UPDATE 
             items
@@ -26,9 +29,13 @@ export default {
           WHERE 
             id = ?
             AND user_id = ?
+            AND del = ?
         `,
-        [1, decodedId(args.input.id), decodedId(context.user.id)]
+        [1, decodedId(args.input.id), decodedId(context.user.id), 0]
       );
+      if (updateItemRowData.affectedRows === 0) {
+        throw new GraphQLError("商品は削除済みです");
+      }
 
       return { deletedItemId: args.input.id };
     },

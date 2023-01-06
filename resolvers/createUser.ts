@@ -1,8 +1,8 @@
+import bcrypt from "bcryptjs";
 import { GraphQLError } from "graphql";
 import { ResultSetHeader } from "mysql2";
 import { GraphQLContext } from "../src/main";
-import { decodedId, encodedId, IItem, IOrder, IUser } from "../src/schema";
-import bcrypt from "bcryptjs";
+import { IUser } from "../src/schema";
 
 export default {
   Mutation: {
@@ -17,6 +17,14 @@ export default {
       context: GraphQLContext
     ) => {
       try {
+        if (args.input.email.length > 256) {
+          throw new GraphQLError("文字数オーバーです");
+        }
+        const pattern =
+          /^[A-Za-z0-9]{1}[A-Za-z0-9_.-]*@{1}[A-Za-z0-9_.-]+.[A-Za-z0-9]+$/;
+        if (!pattern.test(args.input.email)) {
+          throw new GraphQLError("メールアドレスではありません");
+        }
         const regex = /^(?=.*[A-Z])(?=.*[0-9])[a-zA-Z0-9.?/-]{8,20}$/;
         if (!regex.test(args.input.password)) {
           throw new GraphQLError(
@@ -41,9 +49,8 @@ export default {
         }
         const hashPassword = bcrypt.hashSync(String(args.input.password), 3);
         const initPoint = 10000;
-        const [insertUserRowData] =
-          await context.con.execute<ResultSetHeader>(
-            `
+        const [insertUserRowData] = await context.con.execute<ResultSetHeader>(
+          `
             INSERT INTO
               users (
                 email,
@@ -53,8 +60,8 @@ export default {
             VALUES
               (?, ?, ?)
           `,
-            [args.input.email, hashPassword, initPoint]
-          );
+          [args.input.email, hashPassword, initPoint]
+        );
 
         const [userRowData] = await context.con.execute<IUser[]>(
           `

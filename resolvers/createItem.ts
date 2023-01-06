@@ -1,7 +1,7 @@
 import { GraphQLError } from "graphql";
 import { ResultSetHeader } from "mysql2";
 import { GraphQLContext } from "../src/main";
-import { decodedId, encodedId, IItem, IOrder, IUser } from "../src/schema";
+import { decodedId, IItem } from "../src/schema";
 
 export default {
   Mutation: {
@@ -19,9 +19,11 @@ export default {
         if (!context.user) {
           throw new GraphQLError("認証エラーです");
         }
-        const [insertItemRowData] =
-          await context.con.execute<ResultSetHeader>(
-            `
+        if (args.input.name.length > 255) {
+          throw new GraphQLError("文字数オーバーです");
+        }
+        const [insertItemRowData] = await context.con.execute<ResultSetHeader>(
+          `
           INSERT INTO
             items (
               name,
@@ -31,8 +33,8 @@ export default {
           VALUES
             (?, ?, ?)
         `,
-            [args.input.name, args.input.point, decodedId(context.user.id)]
-          );
+          [args.input.name, args.input.point, decodedId(context.user.id)]
+        );
 
         const [itemRowData] = await context.con.execute<IItem[]>(
           `

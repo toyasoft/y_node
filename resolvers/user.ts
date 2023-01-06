@@ -9,6 +9,9 @@ export default {
       args: { id: string },
       context: GraphQLContext
     ) => {
+      if (!decodedId(args.id)) {
+        throw new GraphQLError("ユーザーIDが無効です");
+      }
       const [userRowData] = await context.con.execute<IUser[]>(
         `
           SELECT

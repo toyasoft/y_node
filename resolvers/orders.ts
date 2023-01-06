@@ -1,6 +1,5 @@
-import { GraphQLError } from "graphql";
 import { GraphQLContext } from "../src/main";
-import { decodedId, encodedId, IItem, IOrder, IUser } from "../src/schema";
+import { IOrder } from "../src/schema";
 
 export default {
   Query: {

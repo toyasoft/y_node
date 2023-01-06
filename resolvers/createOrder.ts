@@ -1,7 +1,7 @@
 import { GraphQLError } from "graphql";
 import { ResultSetHeader } from "mysql2";
 import { GraphQLContext } from "../src/main";
-import { decodedId, encodedId, IItem, IOrder, IUser } from "../src/schema";
+import { decodedId, IItem, IOrder, IUser } from "../src/schema";
 
 export default {
   Mutation: {
@@ -16,6 +16,9 @@ export default {
     ) => {
       if (!context.user) {
         throw new GraphQLError("認証エラーです");
+      }
+      if (!decodedId(args.input.itemId)) {
+        throw new GraphQLError("商品IDが無効です");
       }
 
       const [itemRowData] = await context.con.execute<IItem[]>(
@@ -41,6 +44,10 @@ export default {
       );
 
       const item = itemRowData[0];
+
+      if (!item) {
+        throw new GraphQLError("商品が存在しません");
+      }
 
       const [insertOrderRowData] = await context.con.execute<ResultSetHeader>(
         `
@@ -90,8 +97,8 @@ export default {
             id = ?
         `,
         [decodedId(context.user.id)]
-      )
-      const buyer = buyerRowData[0]
+      );
+      const buyer = buyerRowData[0];
       await context.con.execute(
         `
           UPDATE
@@ -115,8 +122,8 @@ export default {
             id = ?
         `,
         [item.user_id]
-      )
-      const seller = sellerRowData[0]
+      );
+      const seller = sellerRowData[0];
 
       const [orderRowData] = await context.con.execute<IOrder[]>(
         `
@@ -149,13 +156,13 @@ export default {
         buyer: {
           id: buyer.id,
           email: buyer.email,
-          point: buyer.point
+          point: buyer.point,
         },
         seller: {
           id: seller.id,
           email: seller.email,
-          point: seller.point
-        }
+          point: seller.point,
+        },
       };
     },
   },
