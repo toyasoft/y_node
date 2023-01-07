@@ -143,7 +143,7 @@ describe("createOrderMutationテスト", () => {
         }
       }
     }`;
-  it("正常時", async () => {
+  it("通常時", async () => {
     const response = await yoga.fetch(api, {
       method: "POST",
       headers: {
