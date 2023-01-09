@@ -162,4 +162,13 @@ describe("createUserMutationテスト", () => {
     const result = await response.json();
     expect(result.errors[0].message).toBe("メールアドレスは登録済みです");
   });
+  it("パスワードが7文字以下の場合", async () => {
+
+  });
+  it("パスワードが21文字以上の場合", async () => {
+
+  });
+  it("パスワードが必要文字を含まない場合", async () => {
+
+  });
 });

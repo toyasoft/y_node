@@ -167,6 +167,8 @@ describe("createOrderMutationテスト", () => {
     expect(result.data.createOrder.seller.point).toBe(
       users[0].point + result.data.createOrder.order.point
     );
+    // 購入者のポイントが商品代分減っている事
+    // 販売者のポイントが商品代分増えている事
   });
   it("未ログインの場合", async () => {
     const response = await yoga.fetch(api, {
@@ -249,5 +251,11 @@ describe("createOrderMutationテスト", () => {
     expect(response.status).toBe(200);
     const result = await response.json();
     expect(result.errors[0].message).toBe("商品が存在しません");
+  });
+  it("購入者と出品者が同じ場合", async () => {
+
+  });
+  it("購入者のポイントが不足している場合", async () => {
+
   });
 });

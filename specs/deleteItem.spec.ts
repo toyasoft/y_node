@@ -191,4 +191,7 @@ describe("deleteItemMutationテスト", () => {
     const result = await response.json();
     expect(result.errors[0].message).toBe("商品は削除済みです");
   });
+  it("商品が存在しない場合", async () => {
+
+  });
 });
