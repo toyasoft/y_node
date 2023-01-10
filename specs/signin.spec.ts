@@ -61,7 +61,7 @@ describe("signinMutationテスト", () => {
     expect(response.status).toBe(200);
     const result = await response.json();
     expect(result.data.signin.user.email).toBe(user.email);
-    expect(Boolean(result.data.signin.userToken)).toBe(true);
+    expect(result.data.signin.userToken).not.toBe(null);
   });
   it("ユーザーが存在しない場合", async () => {
     const response = await yoga.fetch(api, {

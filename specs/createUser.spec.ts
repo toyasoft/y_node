@@ -163,12 +163,54 @@ describe("createUserMutationテスト", () => {
     expect(result.errors[0].message).toBe("メールアドレスは登録済みです");
   });
   it("パスワードが7文字以下の場合", async () => {
-
+    const response = await yoga.fetch(api, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        query: query,
+        variables: { email: user.email, password: "1aSr" },
+      }),
+    });
+    expect(response.status).toBe(200);
+    const result = await response.json();
+    expect(result.errors[0].message).toBe(
+      "パスワードは8文字以上20文字以内で少なくとも英語大文字と英語小文字と数字を一文字以上入力してください"
+    );
   });
   it("パスワードが21文字以上の場合", async () => {
-
+    const response = await yoga.fetch(api, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        query: query,
+        variables: { email: user.email, password: "11111111111111111111aSr" },
+      }),
+    });
+    expect(response.status).toBe(200);
+    const result = await response.json();
+    expect(result.errors[0].message).toBe(
+      "パスワードは8文字以上20文字以内で少なくとも英語大文字と英語小文字と数字を一文字以上入力してください"
+    );
   });
   it("パスワードが必要文字を含まない場合", async () => {
-
+    const response = await yoga.fetch(api, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        query: query,
+        variables: { email: user.email, password: "abcdefghijk" },
+      }),
+    });
+    expect(response.status).toBe(200);
+    const result = await response.json();
+    expect(result.errors[0].message).toBe(
+      "パスワードは8文字以上20文字以内で少なくとも英語大文字と英語小文字と数字を一文字以上入力してください"
+    );
   });
 });

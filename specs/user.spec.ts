@@ -119,6 +119,7 @@ describe("currentUser query test", () => {
     expect(result.data.user.items[1].point).toBe(items[1].point);
     expect(result.data.user.items[2].name).toBe(items[2].name);
     expect(result.data.user.items[2].point).toBe(items[2].point);
+    // ユーザートークンを返す
   });
   it("ユーザーIDが空の場合", async () => {
     const response = await yoga.fetch(api, {

@@ -48,6 +48,25 @@ export default {
       if (!item) {
         throw new GraphQLError("商品が存在しません");
       }
+      if (String(item.user_id) === decodedId(context.user.id)) {
+        throw new GraphQLError("自己出品の商品は購入できません");
+      }
+      const [userRowData] = await context.con.execute<IUser[]>(
+        `
+          SELECT
+            point
+          FROM
+            users
+          WHERE
+            id = ?
+        `,
+        [decodedId(context.user.id)]
+      );
+      const user = userRowData[0];
+
+      if (item.point > user.point) {
+        throw new GraphQLError("ポイントが不足しています");
+      }
 
       const [insertOrderRowData] = await context.con.execute<ResultSetHeader>(
         `

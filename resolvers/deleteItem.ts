@@ -34,7 +34,7 @@ export default {
         [1, decodedId(args.input.id), decodedId(context.user.id), 0]
       );
       if (updateItemRowData.affectedRows === 0) {
-        throw new GraphQLError("商品は削除済みです");
+        throw new GraphQLError("商品は存在しません");
       }
 
       return { deletedItemId: args.input.id };

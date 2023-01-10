@@ -3,13 +3,15 @@ import { YogaServerInstance } from "graphql-yoga";
 import jwt from "jsonwebtoken";
 import mysql, { ResultSetHeader } from "mysql2/promise";
 import { api, db, initYoga } from "../jest.setup";
-import { encodedId } from "../src/schema";
+import { decodedId, encodedId } from "../src/schema";
 
 let yoga: YogaServerInstance<any, any>;
 let con: mysql.Connection;
 let userToken = "";
+let currentUserId = "";
 let itemId = "";
 let delItemId = "";
+let currentUserItemId = "";
 const users = [
   {
     email: "test@toyasoft.com",
@@ -56,6 +58,7 @@ beforeAll(async () => {
   `,
     [users[0].email, hashPassword0, users[0].point]
   );
+  currentUserId = encodedId(insertUserRowData0.insertId, "User");
   const hashPassword1 = bcrypt.hashSync(String(users[1].password), 3);
   const [insertUserRowData1] = await con.execute<ResultSetHeader>(
     `
@@ -70,7 +73,7 @@ beforeAll(async () => {
   `,
     [users[1].email, hashPassword1, users[1].point]
   );
-  const [insertItemRowData] = await con.execute<ResultSetHeader>(
+  const [insertItemRowData1] = await con.execute<ResultSetHeader>(
     `
       INSERT INTO
         items (
@@ -84,7 +87,23 @@ beforeAll(async () => {
     [item.name, item.point, insertUserRowData1.insertId]
   );
 
-  itemId = encodedId(insertItemRowData.insertId, "Item");
+  itemId = encodedId(insertItemRowData1.insertId, "Item");
+
+  const [insertItemRowData0] = await con.execute<ResultSetHeader>(
+    `
+      INSERT INTO
+        items (
+          name,
+          point,
+          user_id
+        )
+      VALUES
+        (?, ?, ?)
+    `,
+    [item.name, item.point, insertUserRowData0.insertId]
+  );
+
+  currentUserItemId = encodedId(insertItemRowData0.insertId, "Item");
 
   const [insertDelItemRowData] = await con.execute<ResultSetHeader>(
     `
@@ -161,14 +180,14 @@ describe("createOrderMutationテスト", () => {
     expect(result.data.createOrder.order.point).toBe(item.point);
     expect(result.data.createOrder.order.buyer).toBe(users[0].email);
     expect(result.data.createOrder.order.seller).toBe(users[1].email);
+    // 購入者のポイントが商品代分減っている事
     expect(result.data.createOrder.buyer.point).toBe(
       users[0].point - result.data.createOrder.order.point
     );
+    // 販売者のポイントが商品代分増えている事
     expect(result.data.createOrder.seller.point).toBe(
       users[0].point + result.data.createOrder.order.point
     );
-    // 購入者のポイントが商品代分減っている事
-    // 販売者のポイントが商品代分増えている事
   });
   it("未ログインの場合", async () => {
     const response = await yoga.fetch(api, {
@@ -229,7 +248,7 @@ describe("createOrderMutationテスト", () => {
       },
       body: JSON.stringify({
         query: query,
-        variables: { itemId: 9999 },
+        variables: { itemId: encodedId(9999, "Item") },
       }),
     });
     expect(response.status).toBe(200);
@@ -253,9 +272,46 @@ describe("createOrderMutationテスト", () => {
     expect(result.errors[0].message).toBe("商品が存在しません");
   });
   it("購入者と出品者が同じ場合", async () => {
-
+    const response = await yoga.fetch(api, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `${userToken}`,
+      },
+      body: JSON.stringify({
+        query: query,
+        variables: { itemId: currentUserItemId },
+      }),
+    });
+    expect(response.status).toBe(200);
+    const result = await response.json();
+    expect(result.errors[0].message).toBe("商品が存在しません");
   });
   it("購入者のポイントが不足している場合", async () => {
-
+    await con.execute(
+      `
+        UPDATE
+          users
+        SET
+          point = ?
+        WHERE
+          id = ?
+      `,
+      [0, decodedId(currentUserId)]
+    );
+    const response = await yoga.fetch(api, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `${userToken}`,
+      },
+      body: JSON.stringify({
+        query: query,
+        variables: { itemId: itemId },
+      }),
+    });
+    expect(response.status).toBe(200);
+    const result = await response.json();
+    expect(result.errors[0].message).toBe("ポイントが不足しています");
   });
 });

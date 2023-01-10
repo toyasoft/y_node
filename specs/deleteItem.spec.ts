@@ -189,9 +189,24 @@ describe("deleteItemMutationテスト", () => {
     });
     expect(response.status).toBe(200);
     const result = await response.json();
-    expect(result.errors[0].message).toBe("商品は削除済みです");
+    expect(result.errors[0].message).toBe("商品は存在しません");
   });
   it("商品が存在しない場合", async () => {
-
+    const response = await yoga.fetch(api, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `${userToken}`,
+      },
+      body: JSON.stringify({
+        query: query,
+        variables: {
+          id: encodedId(9999, "Item"),
+        },
+      }),
+    });
+    expect(response.status).toBe(200);
+    const result = await response.json();
+    expect(result.errors[0].message).toBe("商品は存在しません");
   });
 });
