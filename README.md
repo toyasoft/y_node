@@ -3,6 +3,7 @@
 Node.jsとGrapqhQL(GraphQL Yoga)で構築したAPI。  
 データベースはMysql8を使用。  
 テストはJestを使用。  
+Docker Composeにて構築。
 
 起動コマンド
 
