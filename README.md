@@ -1,23 +1,23 @@
 # Node.js & GraphQL API
 
-Node.jsとGrapqhQL(GraphQL Yoga)で構築したAPI。  
-データベースはMysql8を使用。  
-テストはJestを使用。  
-Docker Composeにて構築。
+Node.js と GrapqhQL(GraphQL Yoga)で構築した API。  
+データベースは Mysql8 を使用。  
+テストは Jest を使用。  
+Docker Compose にて構築。
 
-起動コマンド
+### 起動コマンド
 
 ```
 yarn run dev
 ```
 
-エンドポイント
+### エンドポイント
 
 ```
 http://localhost:4000/graphql
 ```
 
-Graphiql URL
+### Graphiql URL
 
 ```
 http://localhost:4000/graphql
