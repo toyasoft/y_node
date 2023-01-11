@@ -1,7 +1,14 @@
-import bcrypt from "bcryptjs";
 import { YogaServerInstance } from "graphql-yoga";
-import mysql, { ResultSetHeader } from "mysql2/promise";
+import mysql from "mysql2/promise";
 import { api, db, initYoga } from "../jest.setup";
+import {
+  clearItemDatabase,
+  clearOrderDatabase,
+  clearUserDatabase,
+  initializeItemDatabase,
+  initializeOrderDatabase,
+  initializeUserDatabase,
+} from "../src/schema";
 
 let yoga: YogaServerInstance<any, any>;
 let con: mysql.Connection;
@@ -24,88 +31,23 @@ const item = {
 };
 beforeAll(async () => {
   con = await mysql.createConnection(db);
-  await con.execute(`
-    DELETE FROM
-      users
-  `);
-  await con.execute(`
-    DELETE FROM
-      items
-  `);
-  await con.execute(`
-    DELETE FROM
-      orders
-  `);
   yoga = initYoga(con);
-  const hashPassword0 = bcrypt.hashSync(String(users[0].password), 3);
-
-  const [insertUserRowData0] = await con.execute<ResultSetHeader>(
-    `
-    INSERT INTO
-      users (
-        email,
-        password,
-        point
-      )
-    VALUES
-      (?, ?, ?)
-  `,
-    [users[0].email, hashPassword0, users[0].point]
-  );
-  const hashPassword1 = bcrypt.hashSync(String(users[1].password), 3);
-  const [insertUserRowData1] = await con.execute<ResultSetHeader>(
-    `
-    INSERT INTO
-      users (
-        email,
-        password,
-        point
-      )
-    VALUES
-      (?, ?, ?)
-  `,
-    [users[1].email, hashPassword1, users[1].point]
-  );
-
-  const [insertItemRowData] = await con.execute<ResultSetHeader>(
-    `
-      INSERT INTO
-        items (
-          name,
-          point,
-          user_id
-        )
-      VALUES
-        (?, ?, ?)
-    `,
-    [item.name, item.point, insertUserRowData1.insertId]
-  );
-  await con.execute<ResultSetHeader>(
-    `
-      INSERT INTO
-        orders (
-          user_id,
-          item_id,
-          point,
-          buyer,
-          seller,
-          name
-        )
-      VALUES
-        (?, ?, ?, ?, ?, ?)
-    `,
-    [
-      insertUserRowData0.insertId,
-      insertItemRowData.insertId,
-      item.point,
-      users[0].email,
-      users[1].email,
-      item.name,
-    ]
-  );
-});
-afterAll(async () => {
-  con.end();
+  const currentUserData = await initializeUserDatabase(con, users[0]);
+  await initializeUserDatabase(con, users[1]);
+  const itemData = await initializeItemDatabase(con, {
+    name: item.name,
+    point: item.point,
+    userId: currentUserData.userId,
+    del: 0,
+  });
+  await initializeOrderDatabase(con, {
+    userId: currentUserData.userId,
+    itemId: itemData.itemId,
+    point: item.point,
+    buyer: users[0].email,
+    seller: users[1].email,
+    name: item.name,
+  });
 });
 
 describe("ordersQueryテスト", () => {
@@ -137,4 +79,11 @@ describe("ordersQueryテスト", () => {
     expect(result.data?.orders[0].buyer).toBe(users[0].email);
     expect(result.data?.orders[0].seller).toBe(users[1].email);
   });
+});
+
+afterAll(async () => {
+  await clearUserDatabase(con);
+  await clearItemDatabase(con);
+  await clearOrderDatabase(con);
+  await con.end();
 });

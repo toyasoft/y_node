@@ -1,9 +1,12 @@
-import bcrypt from "bcryptjs";
 import { YogaServerInstance } from "graphql-yoga";
-import jwt from "jsonwebtoken";
-import mysql, { ResultSetHeader } from "mysql2/promise";
+import mysql from "mysql2/promise";
 import { api, db, initYoga } from "../jest.setup";
-import { encodedId } from "../src/schema";
+import {
+  clearItemDatabase,
+  clearUserDatabase,
+  initializeItemDatabase,
+  initializeUserDatabase,
+} from "../src/schema";
 
 let yoga: YogaServerInstance<any, any>;
 let con: mysql.Connection;
@@ -29,71 +32,27 @@ const items = [
 ];
 beforeAll(async () => {
   con = await mysql.createConnection(db);
-  await con.execute(`
-    DELETE FROM
-      users
-  `);
-  await con.execute(`
-    DELETE FROM
-      items
-  `);
   yoga = initYoga(con);
-  const hashPassword = bcrypt.hashSync(String(user.password), 3);
-
-  const [insertUserRowData] = await con.execute<ResultSetHeader>(
-    `
-    INSERT INTO
-      users (
-        email,
-        password,
-        point
-      )
-    VALUES
-      (?, ?, ?)
-  `,
-    [user.email, hashPassword, user.point]
-  );
-
-  await con.execute(
-    `
-      INSERT INTO
-        items (
-          name,
-          point,
-          user_id
-        )
-      VALUES
-        (?, ?, ?),
-        (?, ?, ?),
-        (?, ?, ?)
-    `,
-    [
-      items[0].name,
-      items[0].point,
-      insertUserRowData.insertId,
-      items[1].name,
-      items[1].point,
-      insertUserRowData.insertId,
-      items[2].name,
-      items[2].point,
-      insertUserRowData.insertId,
-    ]
-  );
-
-  userToken = jwt.sign(
-    {
-      id: encodedId(insertUserRowData.insertId, "User"),
-      email: user.email,
-      type: "user",
-    },
-    String(process.env.AUTH_SECRET),
-    {
-      expiresIn: "365d",
-    }
-  );
-});
-afterAll(async () => {
-  con.end();
+  const userData = await initializeUserDatabase(con, user);
+  userToken = userData.userToken;
+  await initializeItemDatabase(con, {
+    name: items[0].name,
+    point: items[0].point,
+    userId: userData.userId,
+    del: 0,
+  });
+  await initializeItemDatabase(con, {
+    name: items[1].name,
+    point: items[1].point,
+    userId: userData.userId,
+    del: 0,
+  });
+  await initializeItemDatabase(con, {
+    name: items[2].name,
+    point: items[2].point,
+    userId: userData.userId,
+    del: 0,
+  });
 });
 
 describe("currentUserQueryテスト", () => {
@@ -145,4 +104,10 @@ describe("currentUserQueryテスト", () => {
     const result = await response.json();
     expect(result.errors[0].message).toBe("認証エラーです");
   });
+});
+
+afterAll(async () => {
+  await clearUserDatabase(con);
+  await clearItemDatabase(con);
+  await con.end();
 });

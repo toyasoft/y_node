@@ -1,9 +1,15 @@
-import bcrypt from "bcryptjs";
 import { YogaServerInstance } from "graphql-yoga";
-import jwt from "jsonwebtoken";
-import mysql, { ResultSetHeader } from "mysql2/promise";
+import mysql from "mysql2/promise";
 import { api, db, initYoga } from "../jest.setup";
-import { decodedId, encodedId } from "../src/schema";
+import {
+  clearItemDatabase,
+  clearOrderDatabase,
+  clearUserDatabase,
+  decodedId,
+  encodedId,
+  initializeItemDatabase,
+  initializeUserDatabase,
+} from "../src/schema";
 
 let yoga: YogaServerInstance<any, any>;
 let con: mysql.Connection;
@@ -30,112 +36,32 @@ const item = {
 };
 beforeAll(async () => {
   con = await mysql.createConnection(db);
-  await con.execute(`
-    DELETE FROM
-      users
-  `);
-  await con.execute(`
-    DELETE FROM
-      items
-  `);
-  await con.execute(`
-    DELETE FROM
-      orders
-  `);
   yoga = initYoga(con);
-  const hashPassword0 = bcrypt.hashSync(String(users[0].password), 3);
-
-  const [insertUserRowData0] = await con.execute<ResultSetHeader>(
-    `
-    INSERT INTO
-      users (
-        email,
-        password,
-        point
-      )
-    VALUES
-      (?, ?, ?)
-  `,
-    [users[0].email, hashPassword0, users[0].point]
-  );
-  currentUserId = encodedId(insertUserRowData0.insertId, "User");
-  const hashPassword1 = bcrypt.hashSync(String(users[1].password), 3);
-  const [insertUserRowData1] = await con.execute<ResultSetHeader>(
-    `
-    INSERT INTO
-      users (
-        email,
-        password,
-        point
-      )
-    VALUES
-      (?, ?, ?)
-  `,
-    [users[1].email, hashPassword1, users[1].point]
-  );
-  const [insertItemRowData1] = await con.execute<ResultSetHeader>(
-    `
-      INSERT INTO
-        items (
-          name,
-          point,
-          user_id
-        )
-      VALUES
-        (?, ?, ?)
-    `,
-    [item.name, item.point, insertUserRowData1.insertId]
-  );
-
-  itemId = encodedId(insertItemRowData1.insertId, "Item");
-
-  const [insertItemRowData0] = await con.execute<ResultSetHeader>(
-    `
-      INSERT INTO
-        items (
-          name,
-          point,
-          user_id
-        )
-      VALUES
-        (?, ?, ?)
-    `,
-    [item.name, item.point, insertUserRowData0.insertId]
-  );
-
-  currentUserItemId = encodedId(insertItemRowData0.insertId, "Item");
-
-  const [insertDelItemRowData] = await con.execute<ResultSetHeader>(
-    `
-      INSERT INTO
-        items (
-          name,
-          point,
-          user_id,
-          del
-        )
-      VALUES
-        (?, ?, ?, 1)
-    `,
-    [item.name, item.point, insertUserRowData1.insertId]
-  );
-
-  delItemId = encodedId(insertDelItemRowData.insertId, "Item");
-
-  userToken = jwt.sign(
-    {
-      id: encodedId(insertUserRowData0.insertId, "User"),
-      email: users[0].email,
-      type: "user",
-    },
-    String(process.env.AUTH_SECRET),
-    {
-      expiresIn: "365d",
-    }
-  );
-});
-afterAll(async () => {
-  con.end();
+  const currentUserData = await initializeUserDatabase(con, users[0]);
+  const anotherUserData = await initializeUserDatabase(con, users[1]);
+  userToken = currentUserData.userToken;
+  currentUserId = encodedId(currentUserData.userId, "User");
+  const itemData = await initializeItemDatabase(con, {
+    name: item.name,
+    point: item.point,
+    userId: anotherUserData.userId,
+    del: 0,
+  });
+  itemId = encodedId(itemData.itemId, "Item");
+  const currentUserItemData = await initializeItemDatabase(con, {
+    name: item.name,
+    point: item.point,
+    userId: currentUserData.userId,
+    del: 0,
+  });
+  currentUserItemId = encodedId(currentUserItemData.itemId, "Item");
+  const delItemData = await initializeItemDatabase(con, {
+    name: item.name,
+    point: item.point,
+    userId: anotherUserData.userId,
+    del: 1,
+  });
+  delItemId = encodedId(delItemData.itemId, "Item");
 });
 
 describe("createOrderMutationテスト", () => {
@@ -312,6 +238,16 @@ describe("createOrderMutationテスト", () => {
     });
     expect(response.status).toBe(200);
     const result = await response.json();
+
     expect(result.errors[0].message).toBe("ポイントが不足しています");
   });
+  afterEach(async () => {
+    await clearOrderDatabase(con);
+  });
+});
+
+afterAll(async () => {
+  await clearUserDatabase(con);
+  await clearItemDatabase(con);
+  await con.end();
 });

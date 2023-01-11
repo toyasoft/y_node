@@ -1,7 +1,7 @@
-import bcrypt from "bcryptjs";
 import { YogaServerInstance } from "graphql-yoga";
-import mysql, { ResultSetHeader } from "mysql2/promise";
+import mysql from "mysql2/promise";
 import { api, db, initYoga } from "../jest.setup";
+import { clearUserDatabase, initializeUserDatabase } from "../src/schema";
 
 let yoga: YogaServerInstance<any, any>;
 let con: mysql.Connection;
@@ -12,29 +12,8 @@ const user = {
 };
 beforeAll(async () => {
   con = await mysql.createConnection(db);
-  await con.execute(`
-    DELETE FROM
-      users
-  `);
   yoga = initYoga(con);
-  const hashPassword = bcrypt.hashSync(String(user.password), 3);
-
-  await con.execute<ResultSetHeader>(
-    `
-    INSERT INTO
-      users (
-        email,
-        password,
-        point
-      )
-    VALUES
-      (?, ?, ?)
-  `,
-    [user.email, hashPassword, user.point]
-  );
-});
-afterAll(async () => {
-  con.end();
+  initializeUserDatabase(con, user);
 });
 
 describe("signinMutationテスト", () => {
@@ -92,6 +71,7 @@ describe("signinMutationテスト", () => {
     });
     expect(response.status).toBe(200);
     const result = await response.json();
+
     expect(result.data).toBe(null);
     expect(result.errors[0].message).toBe("ログインできません");
   });
@@ -129,4 +109,9 @@ describe("signinMutationテスト", () => {
       'Variable "$password" of non-null type "String!" must not be null.'
     );
   });
+});
+
+afterAll(async () => {
+  await clearUserDatabase(con);
+  await con.end();
 });

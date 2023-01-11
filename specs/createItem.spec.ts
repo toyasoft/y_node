@@ -1,9 +1,11 @@
-import bcrypt from "bcryptjs";
 import { YogaServerInstance } from "graphql-yoga";
-import jwt from "jsonwebtoken";
-import mysql, { ResultSetHeader } from "mysql2/promise";
+import mysql from "mysql2/promise";
 import { api, db, initYoga } from "../jest.setup";
-import { encodedId } from "../src/schema";
+import {
+  clearItemDatabase,
+  clearUserDatabase,
+  initializeUserDatabase,
+} from "../src/schema";
 
 let yoga: YogaServerInstance<any, any>;
 let con: mysql.Connection;
@@ -19,44 +21,9 @@ const item = {
 };
 beforeAll(async () => {
   con = await mysql.createConnection(db);
-  await con.execute(`
-    DELETE FROM
-      users
-  `);
-  await con.execute(`
-    DELETE FROM
-      items
-  `);
   yoga = initYoga(con);
-  const hashPassword = bcrypt.hashSync(String(user.password), 3);
-
-  const [insertUserRowData] = await con.execute<ResultSetHeader>(
-    `
-    INSERT INTO
-      users (
-        email,
-        password,
-        point
-      )
-    VALUES
-      (?, ?, ?)
-  `,
-    [user.email, hashPassword, user.point]
-  );
-  userToken = jwt.sign(
-    {
-      id: encodedId(insertUserRowData.insertId, "User"),
-      email: user.email,
-      type: "user",
-    },
-    String(process.env.AUTH_SECRET),
-    {
-      expiresIn: "365d",
-    }
-  );
-});
-afterAll(async () => {
-  con.end();
+  const userData = await initializeUserDatabase(con, user);
+  userToken = userData.userToken;
 });
 
 describe("createItemMutationテスト", () => {
@@ -191,4 +158,11 @@ describe("createItemMutationテスト", () => {
       'Variable "$point" got invalid value 10000000000; Int cannot represent non 32-bit signed integer value: 10000000000'
     );
   });
+  afterEach(async () => {
+    await clearItemDatabase(con);
+  });
+});
+afterAll(async () => {
+  await clearUserDatabase(con);
+  con.end();
 });

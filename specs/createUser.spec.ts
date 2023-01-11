@@ -2,27 +2,23 @@ import bcrypt from "bcryptjs";
 import { YogaServerInstance } from "graphql-yoga";
 import mysql, { ResultSetHeader } from "mysql2/promise";
 import { api, db, initYoga } from "../jest.setup";
+import { clearUserDatabase } from "../src/schema";
 
 let yoga: YogaServerInstance<any, any>;
 let con: mysql.Connection;
-const user = {
-  email: "test@toyasoft.com",
-  password: "1234asdfqWer",
-  point: 10000,
-};
+
 beforeAll(async () => {
   con = await mysql.createConnection(db);
-  await con.execute(`
-    DELETE FROM
-      users
-  `);
   yoga = initYoga(con);
-});
-afterAll(async () => {
-  con.end();
+  return;
 });
 
 describe("createUserMutationテスト", () => {
+  const user = {
+    email: "test@toyasoft.com",
+    password: "1234asdfqWer",
+    point: 10000,
+  };
   const query = `
     mutation createUserMutation($email: String! $password: String!){ 
       createUser(input: {email: $email, password: $password}) {
@@ -31,6 +27,7 @@ describe("createUserMutationテスト", () => {
         }
       }
     }`;
+
   it("通常時", async () => {
     const response = await yoga.fetch(api, {
       method: "POST",
@@ -213,4 +210,11 @@ describe("createUserMutationテスト", () => {
       "パスワードは8文字以上20文字以内で少なくとも英語大文字と英語小文字と数字を一文字以上入力してください"
     );
   });
+  afterEach(async () => {
+    await clearUserDatabase(con);
+  });
+});
+
+afterAll(async () => {
+  await con.end();
 });

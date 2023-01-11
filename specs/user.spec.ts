@@ -1,8 +1,13 @@
-import bcrypt from "bcryptjs";
 import { YogaServerInstance } from "graphql-yoga";
-import mysql, { ResultSetHeader } from "mysql2/promise";
+import mysql from "mysql2/promise";
 import { api, db, initYoga } from "../jest.setup";
-import { encodedId } from "../src/schema";
+import {
+  clearItemDatabase,
+  clearUserDatabase,
+  encodedId,
+  initializeItemDatabase,
+  initializeUserDatabase,
+} from "../src/schema";
 
 let yoga: YogaServerInstance<any, any>;
 let con: mysql.Connection;
@@ -28,63 +33,30 @@ const items = [
 ];
 beforeAll(async () => {
   con = await mysql.createConnection(db);
-  await con.execute(`
-    DELETE FROM
-      users
-  `);
-  await con.execute(`
-    DELETE FROM
-      items
-  `);
   yoga = initYoga(con);
-  const hashPassword = bcrypt.hashSync(String(user.password), 3);
-
-  const [insertUserRowData] = await con.execute<ResultSetHeader>(
-    `
-    INSERT INTO
-      users (
-        email,
-        password,
-        point
-      )
-    VALUES
-      (?, ?, ?)
-  `,
-    [user.email, hashPassword, user.point]
-  );
-  userId = encodedId(insertUserRowData.insertId, "User");
-
-  await con.execute(
-    `
-      INSERT INTO
-        items (
-          name,
-          point,
-          user_id
-        )
-      VALUES
-        (?, ?, ?),
-        (?, ?, ?),
-        (?, ?, ?)
-    `,
-    [
-      items[0].name,
-      items[0].point,
-      insertUserRowData.insertId,
-      items[1].name,
-      items[1].point,
-      insertUserRowData.insertId,
-      items[2].name,
-      items[2].point,
-      insertUserRowData.insertId,
-    ]
-  );
-});
-afterAll(async () => {
-  con.end();
+  const userData = await initializeUserDatabase(con, user);
+  userId = encodedId(userData.userId, "User");
+  await initializeItemDatabase(con, {
+    name: items[0].name,
+    point: items[0].point,
+    userId: userData.userId,
+    del: 0,
+  });
+  await initializeItemDatabase(con, {
+    name: items[1].name,
+    point: items[1].point,
+    userId: userData.userId,
+    del: 0,
+  });
+  await initializeItemDatabase(con, {
+    name: items[2].name,
+    point: items[2].point,
+    userId: userData.userId,
+    del: 0,
+  });
 });
 
-describe("currentUser query test", () => {
+describe("userQueryテスト", () => {
   const query = `
     query userQuery($id: ID!) { 
       user(id: $id) {
@@ -112,6 +84,7 @@ describe("currentUser query test", () => {
     });
     expect(response.status).toBe(200);
     const result = await response.json();
+
     expect(result.data.user.email).toBe(user.email);
     expect(result.data.user.items[0].name).toBe(items[0].name);
     expect(result.data.user.items[0].point).toBe(items[0].point);
@@ -120,6 +93,7 @@ describe("currentUser query test", () => {
     expect(result.data.user.items[2].name).toBe(items[2].name);
     expect(result.data.user.items[2].point).toBe(items[2].point);
     // ユーザートークンを返す
+    expect(result.data.userToken).not.toBe(null);
   });
   it("ユーザーIDが空の場合", async () => {
     const response = await yoga.fetch(api, {
@@ -174,4 +148,10 @@ describe("currentUser query test", () => {
     const result = await response.json();
     expect(result.errors[0].message).toBe("ユーザーが存在しません");
   });
+});
+
+afterAll(async () => {
+  await clearUserDatabase(con);
+  await clearItemDatabase(con);
+  await con.end();
 });

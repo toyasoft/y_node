@@ -1,9 +1,13 @@
-import bcrypt from "bcryptjs";
 import { YogaServerInstance } from "graphql-yoga";
-import jwt from "jsonwebtoken";
-import mysql, { ResultSetHeader } from "mysql2/promise";
+import mysql from "mysql2/promise";
 import { api, db, initYoga } from "../jest.setup";
-import { encodedId } from "../src/schema";
+import {
+  clearItemDatabase,
+  clearUserDatabase,
+  encodedId,
+  initializeItemDatabase,
+  initializeUserDatabase,
+} from "../src/schema";
 
 let yoga: YogaServerInstance<any, any>;
 let con: mysql.Connection;
@@ -22,74 +26,23 @@ let itemId = "";
 let delItemId = "";
 beforeAll(async () => {
   con = await mysql.createConnection(db);
-  await con.execute(`
-    DELETE FROM
-      users
-  `);
-  await con.execute(`
-    DELETE FROM
-      items
-  `);
   yoga = initYoga(con);
-  const hashPassword = bcrypt.hashSync(String(user.password), 3);
-
-  const [insertUserRowData] = await con.execute<ResultSetHeader>(
-    `
-    INSERT INTO
-      users (
-        email,
-        password,
-        point
-      )
-    VALUES
-      (?, ?, ?)
-  `,
-    [user.email, hashPassword, user.point]
-  );
-  userToken = await jwt.sign(
-    {
-      id: encodedId(insertUserRowData.insertId, "User"),
-      email: user.email,
-      type: "user",
-    },
-    String(process.env.AUTH_SECRET),
-    {
-      expiresIn: "365d",
-    }
-  );
-  const [insertItemRowData] = await con.execute<ResultSetHeader>(
-    `
-      INSERT INTO
-        items (
-          name,
-          point,
-          user_id
-        )
-      VALUES
-        (?, ?, ?)
-    `,
-    [item.name, item.point, insertUserRowData.insertId]
-  );
-  itemId = encodedId(insertItemRowData.insertId, "Item");
-  const [insertDelItemRowData] = await con.execute<ResultSetHeader>(
-    `
-      INSERT INTO
-        items (
-          name,
-          point,
-          user_id,
-          del
-        )
-      VALUES
-        (?, ?, ?, 1)
-    `,
-    [item.name, item.point, insertUserRowData.insertId]
-  );
-
-  delItemId = encodedId(insertDelItemRowData.insertId, "Item");
-});
-afterAll(async () => {
-  con.end();
+  const userData = await initializeUserDatabase(con, user);
+  userToken = userData.userToken;
+  const itemData = await initializeItemDatabase(con, {
+    name: item.name,
+    point: item.point,
+    userId: userData.userId,
+    del: 0,
+  });
+  itemId = encodedId(itemData.itemId, "Item");
+  const delItemData = await initializeItemDatabase(con, {
+    name: "商品1",
+    point: 1000,
+    userId: userData.userId,
+    del: 1,
+  });
+  delItemId = encodedId(delItemData.itemId, "Item");
 });
 
 describe("deleteItemMutationテスト", () => {
@@ -209,4 +162,12 @@ describe("deleteItemMutationテスト", () => {
     const result = await response.json();
     expect(result.errors[0].message).toBe("商品は存在しません");
   });
+  afterEach(async () => {
+    await clearItemDatabase(con);
+  });
+});
+
+afterAll(async () => {
+  await clearUserDatabase(con);
+  con.end();
 });
