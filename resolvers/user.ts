@@ -9,11 +9,12 @@ export default {
       args: { id: string },
       context: GraphQLContext
     ) => {
-      if (!decodedId(args.id)) {
-        throw new GraphQLError("ユーザーIDが無効です");
-      }
-      const [userRowData] = await context.con.execute<IUser[]>(
-        `
+      try {
+        if (!decodedId(args.id)) {
+          throw new GraphQLError("ユーザーIDが無効です");
+        }
+        const [userRowData] = await context.con.execute<IUser[]>(
+          `
           SELECT
             u.id,
             u.email,
@@ -38,30 +39,33 @@ export default {
           WHERE
             u.id = ?
         `,
-        [0, decodedId(args.id)]
-      );
+          [0, decodedId(args.id)]
+        );
 
-      const user: IUser = userRowData[0];
-      if (!user) {
-        throw new GraphQLError("ユーザーが存在しません");
+        const user: IUser = userRowData[0];
+        if (!user) {
+          throw new GraphQLError("ユーザーが存在しません");
+        }
+        const items = userRowData
+          .map((row: IUser) => {
+            if (row.item_id) {
+              return {
+                id: encodedId(row.item_id, "Item"),
+                name: row.item_name,
+                point: row.item_point,
+              };
+            }
+          })
+          .filter(Boolean);
+
+        return {
+          id: user.id,
+          email: user.email,
+          items: items,
+        };
+      } catch (e) {
+        return e;
       }
-      const items = userRowData
-        .map((row: IUser) => {
-          if (row.item_id) {
-            return {
-              id: encodedId(row.item_id, "Item"),
-              name: row.item_name,
-              point: row.item_point,
-            };
-          }
-        })
-        .filter(Boolean);
-
-      return {
-        id: user.id,
-        email: user.email,
-        items: items,
-      };
     },
   },
 };

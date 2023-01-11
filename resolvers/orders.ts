@@ -8,8 +8,9 @@ export default {
       _args: unknown,
       context: GraphQLContext
     ) => {
-      const [orderRowData] = await context.con.execute<IOrder[]>(
-        `
+      try {
+        const [orderRowData] = await context.con.execute<IOrder[]>(
+          `
           SELECT
             id,
             name,
@@ -20,17 +21,20 @@ export default {
           FROM
             orders
         `
-      );
-      const orders = orderRowData.map((row: IOrder) => ({
-        id: row.id,
-        name: row.name,
-        buyer: row.buyer,
-        seller: row.seller,
-        point: row.point,
-        createdAt: row.created_at,
-      }));
+        );
+        const orders = orderRowData.map((row: IOrder) => ({
+          id: row.id,
+          name: row.name,
+          buyer: row.buyer,
+          seller: row.seller,
+          point: row.point,
+          createdAt: row.created_at,
+        }));
 
-      return orders;
+        return orders;
+      } catch (e) {
+        return e;
+      }
     },
   },
 };

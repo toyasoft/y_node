@@ -14,14 +14,15 @@ export default {
       },
       context: GraphQLContext
     ) => {
-      if (!context.user) {
-        throw new GraphQLError("認証エラーです");
-      }
-      if (!decodedId(args.input.id)) {
-        throw new GraphQLError("商品IDが無効です");
-      }
-      const [updateItemRowData] = await context.con.execute<ResultSetHeader>(
-        `
+      try {
+        if (!context.user) {
+          throw new GraphQLError("認証エラーです");
+        }
+        if (!decodedId(args.input.id)) {
+          throw new GraphQLError("商品IDが無効です");
+        }
+        const [updateItemRowData] = await context.con.execute<ResultSetHeader>(
+          `
           UPDATE 
             items
           SET
@@ -31,13 +32,16 @@ export default {
             AND user_id = ?
             AND del = ?
         `,
-        [1, decodedId(args.input.id), decodedId(context.user.id), 0]
-      );
-      if (updateItemRowData.affectedRows === 0) {
-        throw new GraphQLError("商品は存在しません");
-      }
+          [1, decodedId(args.input.id), decodedId(context.user.id), 0]
+        );
+        if (updateItemRowData.affectedRows === 0) {
+          throw new GraphQLError("商品は存在しません");
+        }
 
-      return { deletedItemId: args.input.id };
+        return { deletedItemId: args.input.id };
+      } catch (e) {
+        return e;
+      }
     },
   },
 };

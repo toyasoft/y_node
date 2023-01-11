@@ -8,8 +8,9 @@ export default {
       _args: unknown,
       context: GraphQLContext
     ) => {
-      const [itemRowData] = await context.con.execute<IItem[]>(
-        `
+      try {
+        const [itemRowData] = await context.con.execute<IItem[]>(
+          `
           SELECT
             i.id,
             i.name,
@@ -20,16 +21,19 @@ export default {
           WHERE
             i.del = ?
         `,
-        [0]
-      );
-      const items = itemRowData.map((row) => ({
-        id: encodedId(row.id, "Item"),
-        name: row.name,
-        point: row.point,
-        userId: row.user_id,
-      }));
+          [0]
+        );
+        const items = itemRowData.map((row) => ({
+          id: encodedId(row.id, "Item"),
+          name: row.name,
+          point: row.point,
+          userId: row.user_id,
+        }));
 
-      return items;
+        return items;
+      } catch (e) {
+        return e;
+      }
     },
   },
 };

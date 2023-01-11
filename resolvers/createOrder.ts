@@ -14,15 +14,16 @@ export default {
       },
       context: GraphQLContext
     ) => {
-      if (!context.user) {
-        throw new GraphQLError("認証エラーです");
-      }
-      if (!decodedId(args.input.itemId)) {
-        throw new GraphQLError("商品IDが無効です");
-      }
+      try {
+        if (!context.user) {
+          throw new GraphQLError("認証エラーです");
+        }
+        if (!decodedId(args.input.itemId)) {
+          throw new GraphQLError("商品IDが無効です");
+        }
 
-      const [itemRowData] = await context.con.execute<IItem[]>(
-        `
+        const [itemRowData] = await context.con.execute<IItem[]>(
+          `
         SELECT
           i.id,
           i.name,
@@ -40,19 +41,19 @@ export default {
           AND i.del = ?
           AND i.user_id != ?
       `,
-        [decodedId(args.input.itemId), 0, decodedId(context.user.id)]
-      );
+          [decodedId(args.input.itemId), 0, decodedId(context.user.id)]
+        );
 
-      const item = itemRowData[0];
+        const item = itemRowData[0];
 
-      if (!item) {
-        throw new GraphQLError("商品が存在しません");
-      }
-      if (String(item.user_id) === decodedId(context.user.id)) {
-        throw new GraphQLError("自己出品の商品は購入できません");
-      }
-      const [userRowData] = await context.con.execute<IUser[]>(
-        `
+        if (!item) {
+          throw new GraphQLError("商品が存在しません");
+        }
+        if (String(item.user_id) === decodedId(context.user.id)) {
+          throw new GraphQLError("自己出品の商品は購入できません");
+        }
+        const [userRowData] = await context.con.execute<IUser[]>(
+          `
           SELECT
             point
           FROM
@@ -60,16 +61,16 @@ export default {
           WHERE
             id = ?
         `,
-        [decodedId(context.user.id)]
-      );
-      const user = userRowData[0];
+          [decodedId(context.user.id)]
+        );
+        const user = userRowData[0];
 
-      if (item.point > user.point) {
-        throw new GraphQLError("ポイントが不足しています");
-      }
+        if (item.point > user.point) {
+          throw new GraphQLError("ポイントが不足しています");
+        }
 
-      const [insertOrderRowData] = await context.con.execute<ResultSetHeader>(
-        `
+        const [insertOrderRowData] = await context.con.execute<ResultSetHeader>(
+          `
           INSERT INTO
             orders (
               user_id,
@@ -82,18 +83,18 @@ export default {
           VALUES
             (?, ?, ?, ?, ?, ?)
         `,
-        [
-          decodedId(context.user.id),
-          decodedId(args.input.itemId),
-          item.point,
-          context.user.email,
-          item.email,
-          item.name,
-        ]
-      );
+          [
+            decodedId(context.user.id),
+            decodedId(args.input.itemId),
+            item.point,
+            context.user.email,
+            item.email,
+            item.name,
+          ]
+        );
 
-      await context.con.execute(
-        `
+        await context.con.execute(
+          `
           UPDATE
             users
           SET
@@ -101,11 +102,11 @@ export default {
           WHERE
             id = ?
         `,
-        [item.point, decodedId(context.user.id)]
-      );
+          [item.point, decodedId(context.user.id)]
+        );
 
-      const [buyerRowData] = await context.con.execute<IUser[]>(
-        `
+        const [buyerRowData] = await context.con.execute<IUser[]>(
+          `
           SELECT
             id,
             email,
@@ -115,11 +116,11 @@ export default {
           WHERE
             id = ?
         `,
-        [decodedId(context.user.id)]
-      );
-      const buyer = buyerRowData[0];
-      await context.con.execute(
-        `
+          [decodedId(context.user.id)]
+        );
+        const buyer = buyerRowData[0];
+        await context.con.execute(
+          `
           UPDATE
             users
           SET
@@ -127,10 +128,10 @@ export default {
           WHERE
             id = ?
         `,
-        [item.point, item.user_id]
-      );
-      const [sellerRowData] = await context.con.execute<IUser[]>(
-        `
+          [item.point, item.user_id]
+        );
+        const [sellerRowData] = await context.con.execute<IUser[]>(
+          `
           SELECT
             id,
             email,
@@ -140,12 +141,12 @@ export default {
           WHERE
             id = ?
         `,
-        [item.user_id]
-      );
-      const seller = sellerRowData[0];
+          [item.user_id]
+        );
+        const seller = sellerRowData[0];
 
-      const [orderRowData] = await context.con.execute<IOrder[]>(
-        `
+        const [orderRowData] = await context.con.execute<IOrder[]>(
+          `
           SELECT
             id,
             name,
@@ -158,31 +159,34 @@ export default {
           WHERE
             id = ?
         `,
-        [insertOrderRowData.insertId]
-      );
+          [insertOrderRowData.insertId]
+        );
 
-      const order: IOrder = orderRowData[0];
+        const order: IOrder = orderRowData[0];
 
-      return {
-        order: {
-          id: order.id,
-          name: order.name,
-          point: order.point,
-          buyer: order.buyer,
-          seller: order.seller,
-          createdAt: order.created_at,
-        },
-        buyer: {
-          id: buyer.id,
-          email: buyer.email,
-          point: buyer.point,
-        },
-        seller: {
-          id: seller.id,
-          email: seller.email,
-          point: seller.point,
-        },
-      };
+        return {
+          order: {
+            id: order.id,
+            name: order.name,
+            point: order.point,
+            buyer: order.buyer,
+            seller: order.seller,
+            createdAt: order.created_at,
+          },
+          buyer: {
+            id: buyer.id,
+            email: buyer.email,
+            point: buyer.point,
+          },
+          seller: {
+            id: seller.id,
+            email: seller.email,
+            point: seller.point,
+          },
+        };
+      } catch (e) {
+        return e;
+      }
     },
   },
 };
