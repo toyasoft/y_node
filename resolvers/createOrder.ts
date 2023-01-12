@@ -21,7 +21,7 @@ export default {
         if (!decodedId(args.input.itemId)) {
           throw new GraphQLError("商品IDが無効です");
         }
-
+        await context.con.beginTransaction();
         const [itemRowData] = await context.con.execute<IItem[]>(
           `
         SELECT
@@ -163,7 +163,7 @@ export default {
         );
 
         const order: IOrder = orderRowData[0];
-
+        await context.con.commit();
         return {
           order: {
             id: order.id,
@@ -185,6 +185,7 @@ export default {
           },
         };
       } catch (e) {
+        await context.con.rollback();
         return e;
       }
     },
